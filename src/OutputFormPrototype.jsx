@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, createContext, useContext, Fragment } from "react";
+import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { motion, AnimatePresence, Reorder, useDragControls, LayoutGroup } from "framer-motion";
-import { ChevronUp, ChevronDown, ChevronLeft, Star, Bell, User, RotateCcw } from "lucide-react";
+import { ChevronDown, ChevronLeft, Star, Bell, User, RotateCcw } from "lucide-react";
 
 // Vitaly RSO design tokens (Figma: OpenLine-Vitaly, node 14002:280778)
 const T = {
@@ -60,7 +60,6 @@ const INITIAL_SECTIONS = [
     fields: [
       { key: "clinician.name", label: "Clinician name", on: true, value: "Dr. CAMPBEL, Sara", strong: true },
       { key: "clinician.specialty", label: "Specialty", on: false, value: "Colorectal surgeon" },
-      { key: "clinician.department", label: "Department", on: false, value: "Dept. of Gastrointestinal Surgery" },
       { key: "clinician.email", label: "Email", on: true, value: "sara.campbel@hospital.com" },
       { key: "clinician.phone", label: "Phone", on: true, value: "+385 544 30 40" },
     ],
@@ -72,8 +71,6 @@ const INITIAL_SECTIONS = [
     layout: "half",
     fields: [
       { key: "hospital.name", label: "Hospital name", on: true, value: "Silver River Memorial Hospital", strong: true },
-      { key: "hospital.contact_person", label: "Contact person", on: false, value: "Dr. Mike Myers (GP liaison)" },
-      { key: "hospital.address", label: "Address", on: false, value: "12 Riverside Road, Leeds LS1 4AP" },
       { key: "hospital.email", label: "Email", on: true, value: "mike.myers@silver-river-hospital.co.uk" },
       { key: "hospital.phone", label: "Phone", on: true, value: "+385 544 30 40" },
     ],
@@ -89,8 +86,6 @@ const INITIAL_SECTIONS = [
       },
       { key: "summary.surgical_history", label: "Surgical history", on: true, type: "para", value: "No significant surgical history." },
       { key: "summary.comorbidities", label: "Comorbidities", on: true, type: "para", value: "Comorbidities include controlled hypertension and Type 2 diabetes." },
-      { key: "summary.medication", label: "Current medication", on: false, type: "para", value: "Current medication: Metformin 500 mg BID, Lisinopril 10 mg OD." },
-      { key: "summary.allergies", label: "Allergies", on: false, type: "para", value: "Allergies: Penicillin (rash)." },
     ],
   },
   {
@@ -112,7 +107,6 @@ const INITIAL_SECTIONS = [
         ],
       },
       { key: "radiology.staging", label: "Staging proposal", on: true, type: "line", value: "Staging Proposal: T3 N1 M0" },
-      { key: "radiology.reported_by", label: "Reported by", on: false, type: "line", value: "Reported by: Dr. Elise van den Berg" },
     ],
   },
   {
@@ -127,7 +121,6 @@ const INITIAL_SECTIONS = [
       { key: "pathology.mmr", label: "MMR proteins", on: true, type: "item", value: "MMR proteins: Intact" },
       { key: "pathology.kras", label: "KRAS / NRAS / BRAF", on: true, type: "item", value: "KRAS/NRAS/BRAF: Wild type" },
       { key: "pathology.msi", label: "MSI status", on: true, type: "item", value: "MSI: Stable (MSS)" },
-      { key: "pathology.her2", label: "HER2 status", on: false, type: "item", value: "HER2: Negative (IHC 0)" },
     ],
   },
   {
@@ -149,7 +142,6 @@ const INITIAL_SECTIONS = [
       },
       { key: "mdt.fitness", label: "Patient fitness", on: true, type: "line", value: "Patient fitness: WHO PS 1 – suitable for planned interventions" },
       { key: "mdt.preferences", label: "Patient preferences", on: true, type: "line", value: "Patient preferences: Wishes to proceed with curative treatment" },
-      { key: "mdt.trial", label: "Clinical trial eligibility", on: false, type: "line", value: "Clinical trial eligibility: Screened for COLOPEC-2, not eligible" },
     ],
   },
   {
@@ -162,7 +154,6 @@ const INITIAL_SECTIONS = [
       { key: "next_steps.anesthetic", label: "Pre-op evaluation", on: true, type: "item", value: "Pre-op anesthetic evaluation – Dr. Femke Brouwer" },
       { key: "next_steps.oncology", label: "Oncology review", on: true, type: "item", value: "Post-op oncology review – Dr. Claire Dubois" },
       { key: "next_steps.coordinator", label: "EHR & GP update", on: true, type: "item", value: "MDT coordinator to update EHR and send report to GP" },
-      { key: "next_steps.follow_up_mdt", label: "Follow-up MDT", on: false, type: "item", value: "Re-discuss at post-op MDT – 24/06/2025" },
     ],
   },
   {
@@ -224,6 +215,44 @@ function Toggle({ checked, onChange, label }) {
 }
 
 /* ------------------------------------------------------------ chrome */
+
+// Condensed primary navigation ("Expanded-nav" 14002:280777). Icons are the Figma exports in ./nav:
+// 00 = logo, 01–11 = main items, 12–13 = bottom items.
+const NAV_ICONS = import.meta.glob("./nav/*.svg", { eager: true, query: "?url", import: "default" });
+const navIcon = (n) => NAV_ICONS[`./nav/${String(n).padStart(2, "0")}.svg`];
+const NAV_ACTIVE = 7; // Care unit manager
+
+function NavItem({ n, active, bg = "#002532" }) {
+  return (
+    <button
+      className="w-14 h-12 flex items-center justify-center transition-colors hover:brightness-150"
+      style={{ background: active ? T.primary : bg }}
+      aria-current={active ? "page" : undefined}
+      title={active ? "Care unit manager" : undefined}
+    >
+      <img src={navIcon(n)} alt="" className="w-6 h-6" />
+    </button>
+  );
+}
+
+function SideNav() {
+  return (
+    <aside className="w-14 shrink-0 sticky top-0 h-screen flex flex-col justify-between" style={{ background: "#002532" }}>
+      <div>
+        <div className="h-[108px] px-4 pt-6">
+          <img src={navIcon(0)} alt="OpenLine Vitaly" className="w-[25px] h-6" />
+        </div>
+        <nav>
+          {Array.from({ length: 11 }, (_, i) => <NavItem key={i} n={i + 1} active={i + 1 === NAV_ACTIVE} />)}
+        </nav>
+      </div>
+      <div>
+        <NavItem n={12} />
+        <NavItem n={13} bg="#001922" />
+      </div>
+    </aside>
+  );
+}
 
 function TopHeader() {
   return (
@@ -366,7 +395,7 @@ function SectionCard({ section, expanded, onToggleExpand, onReorderFields, onTog
         className="flex items-center justify-between p-6 cursor-pointer select-none"
       >
         <div className="flex items-center gap-2 pr-2">
-          {expanded ? <ChevronUp size={22} color={T.primary} /> : handle}
+          {handle}
           <span className="text-[16px] font-bold uppercase tracking-[1px] leading-[1.2]" style={{ color: T.bodyText }}>
             {section.title}
           </span>
@@ -377,7 +406,9 @@ function SectionCard({ section, expanded, onToggleExpand, onReorderFields, onTog
             {shown ? `${shown}/${total} visible` : "Hidden in output"}
           </span>
         </div>
-        {expanded ? handle : <ChevronDown size={22} color={T.primary} />}
+        <motion.span animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }} className="flex">
+          <ChevronDown size={22} color={T.primary} />
+        </motion.span>
       </div>
 
       <AnimatePresence initial={false}>
@@ -784,7 +815,9 @@ export default function OutputFormPrototype() {
   const isDirty = sections !== INITIAL_SECTIONS;
 
   return (
-    <div className="min-h-screen" style={{ fontFamily: T.fontFamily, color: T.bodyText, background: T.light }}>
+    <div className="min-h-screen flex" style={{ fontFamily: T.fontFamily, color: T.bodyText, background: T.light }}>
+      <SideNav />
+      <div className="flex-1 min-w-0">
       <TopHeader />
       <UnitHeader />
 
@@ -850,17 +883,10 @@ export default function OutputFormPrototype() {
                 <Preview sections={sections} />
               </HoverCtx.Provider>
             </div>
-            <div className="px-6 py-6" style={{ borderTop: `1px solid ${T.border}` }}>
-              <button
-                className="px-[13px] py-[7px] rounded text-[15px] text-white"
-                style={{ background: T.danger, border: `1px solid ${T.danger}` }}
-              >
-                Deactivate care unit
-              </button>
-            </div>
           </section>
         </div>
       </main>
+      </div>
     </div>
   );
 }
