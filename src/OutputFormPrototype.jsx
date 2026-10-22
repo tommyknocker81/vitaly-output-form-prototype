@@ -277,7 +277,7 @@ function TopHeader() {
   );
 }
 
-const UNIT_TABS = ["About", "Treating clinican", "Referrer", "Patient contact"];
+const UNIT_TABS = ["Basic information", "Meeting dates", "Video conferencing", "Members"];
 
 function UnitHeader() {
   return (
@@ -302,7 +302,7 @@ function UnitHeader() {
         {UNIT_TABS.map((t, i) => (
           <span
             key={t}
-            className="w-[145px] flex items-center justify-center text-[13px] uppercase cursor-default"
+            className="min-w-[145px] px-4 whitespace-nowrap flex items-center justify-center text-[13px] uppercase cursor-default"
             style={{
               color: i === 0 ? T.primary : T.bodyText,
               fontWeight: i === 0 ? 700 : 400,
