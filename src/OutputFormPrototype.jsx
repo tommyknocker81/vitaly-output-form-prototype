@@ -277,7 +277,8 @@ function TopHeader() {
   );
 }
 
-const UNIT_TABS = ["Basic information", "Meeting dates", "Video conferencing", "Members"];
+const UNIT_TABS = ["Basic information", "Output forms", "Meeting dates", "Video conferencing", "Members"];
+const UNIT_TAB_ACTIVE = 1; // this page
 
 function UnitHeader() {
   return (
@@ -304,9 +305,9 @@ function UnitHeader() {
             key={t}
             className="min-w-[145px] px-4 whitespace-nowrap flex items-center justify-center text-[13px] uppercase cursor-default"
             style={{
-              color: i === 0 ? T.primary : T.bodyText,
-              fontWeight: i === 0 ? 700 : 400,
-              borderBottom: i === 0 ? `2px solid ${T.primary}` : "2px solid transparent",
+              color: i === UNIT_TAB_ACTIVE ? T.primary : T.bodyText,
+              fontWeight: i === UNIT_TAB_ACTIVE ? 700 : 400,
+              borderBottom: i === UNIT_TAB_ACTIVE ? `2px solid ${T.primary}` : "2px solid transparent",
             }}
           >
             {t}
