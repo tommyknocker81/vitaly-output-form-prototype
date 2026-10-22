@@ -82,10 +82,9 @@ const INITIAL_SECTIONS = [
     fields: [
       {
         key: "summary.presentation", label: "Clinical presentation", on: true, type: "para",
-        value: "67-year-old female with a recent diagnosis of moderately differentiated adenocarcinoma of the sigmoid colon, identified via colonoscopy following symptoms of rectal bleeding and altered bowel habits. Biopsy confirms malignancy.",
+        value: "67-year-old female with moderately differentiated adenocarcinoma of the sigmoid colon, confirmed on colonoscopy biopsy.",
       },
-      { key: "summary.surgical_history", label: "Surgical history", on: true, type: "para", value: "No significant surgical history." },
-      { key: "summary.comorbidities", label: "Comorbidities", on: true, type: "para", value: "Comorbidities include controlled hypertension and Type 2 diabetes." },
+      { key: "summary.comorbidities", label: "Comorbidities", on: true, type: "para", value: "Comorbidities: controlled hypertension, Type 2 diabetes." },
     ],
   },
   {
@@ -94,19 +93,16 @@ const INITIAL_SECTIONS = [
     kind: "content",
     layout: "half",
     fields: [
-      { key: "radiology.modality", label: "Modality", on: true, type: "line", value: "Modality: CT Abdomen/Pelvis with contrast" },
-      { key: "radiology.date", label: "Examination date", on: true, type: "line", value: "Date: 01/05/2025" },
+      { key: "radiology.modality", label: "Modality", on: true, type: "line", value: "CT Abdomen/Pelvis, 01/05/2025" },
       {
-        key: "radiology.findings", label: "Findings", on: true, type: "list", gapAfter: true,
+        key: "radiology.findings", label: "Findings", on: true, type: "list",
         items: [
-          "Irregular wall thickening in sigmoid colon (4.8 cm lesion)",
-          "No signs of obstruction",
-          "Pericolic fat stranding",
-          "Multiple pericolic lymph nodes (largest 9 mm)",
-          "No evidence of distant metastases",
+          "4.8 cm sigmoid lesion, no obstruction",
+          "Pericolic lymph nodes (largest 9 mm)",
+          "No distant metastases",
         ],
       },
-      { key: "radiology.staging", label: "Staging proposal", on: true, type: "line", value: "Staging Proposal: T3 N1 M0" },
+      { key: "radiology.staging", label: "Staging proposal", on: true, type: "line", value: "Staging: T3 N1 M0" },
     ],
   },
   {
@@ -116,11 +112,9 @@ const INITIAL_SECTIONS = [
     layout: "half",
     fields: [
       { key: "pathology.specimen", label: "Specimen", on: true, type: "line", value: "Specimen: Colonoscopy biopsy" },
-      { key: "pathology.tumor_type", label: "Tumor type", on: true, type: "item", value: "Tumor type: Adenocarcinoma, NOS" },
-      { key: "pathology.grade", label: "Grade", on: true, type: "item", value: "Grade: 2 (moderately differentiated)" },
-      { key: "pathology.mmr", label: "MMR proteins", on: true, type: "item", value: "MMR proteins: Intact" },
+      { key: "pathology.tumor_type", label: "Tumor type", on: true, type: "item", value: "Adenocarcinoma, grade 2" },
+      { key: "pathology.mmr", label: "MMR / MSI", on: true, type: "item", value: "MMR intact, MSS" },
       { key: "pathology.kras", label: "KRAS / NRAS / BRAF", on: true, type: "item", value: "KRAS/NRAS/BRAF: Wild type" },
-      { key: "pathology.msi", label: "MSI status", on: true, type: "item", value: "MSI: Stable (MSS)" },
     ],
   },
   {
@@ -128,20 +122,16 @@ const INITIAL_SECTIONS = [
     title: "MDT decision",
     kind: "content",
     fields: [
-      { key: "mdt.discussion", label: "Discussion", on: true, type: "para", gapAfter: true, value: "The case was discussed in full with all specialties present." },
-      { key: "mdt.diagnosis", label: "Diagnosis", on: true, type: "line", value: "Diagnosis: Sigmoid colon adenocarcinoma, Stage IIIB (T3N1M0)" },
+      { key: "mdt.diagnosis", label: "Diagnosis", on: true, type: "line", value: "Diagnosis: Sigmoid adenocarcinoma, Stage IIIB" },
       { key: "mdt.intent", label: "Treatment intent", on: true, type: "line", value: "Intent: Curative" },
       {
-        key: "mdt.plan", label: "Recommended plan", on: true, type: "list", lead: "Recommended Plan:", gapAfter: true,
+        key: "mdt.plan", label: "Recommended plan", on: true, type: "list", lead: "Plan:",
         items: [
-          "Surgical resection (laparoscopic anterior resection)",
-          "No need for neoadjuvant treatment",
-          "Post-operative adjuvant chemotherapy (CAPOX protocol) to be started within 6–8 weeks after surgery, pending recovery",
-          "Follow-up imaging and labs to be arranged post-op",
+          "Laparoscopic anterior resection",
+          "Adjuvant CAPOX 6–8 weeks post-op",
         ],
       },
-      { key: "mdt.fitness", label: "Patient fitness", on: true, type: "line", value: "Patient fitness: WHO PS 1 – suitable for planned interventions" },
-      { key: "mdt.preferences", label: "Patient preferences", on: true, type: "line", value: "Patient preferences: Wishes to proceed with curative treatment" },
+      { key: "mdt.fitness", label: "Patient fitness", on: true, type: "line", value: "Fitness: WHO PS 1" },
     ],
   },
   {
@@ -150,10 +140,9 @@ const INITIAL_SECTIONS = [
     kind: "content",
     ordered: true,
     fields: [
-      { key: "next_steps.surgery", label: "Surgical scheduling", on: true, type: "item", value: "Surgical scheduling – Dr. Olivia Foster (within next 10 days)" },
-      { key: "next_steps.anesthetic", label: "Pre-op evaluation", on: true, type: "item", value: "Pre-op anesthetic evaluation – Dr. Femke Brouwer" },
+      { key: "next_steps.surgery", label: "Surgical scheduling", on: true, type: "item", value: "Schedule surgery – Dr. Olivia Foster" },
       { key: "next_steps.oncology", label: "Oncology review", on: true, type: "item", value: "Post-op oncology review – Dr. Claire Dubois" },
-      { key: "next_steps.coordinator", label: "EHR & GP update", on: true, type: "item", value: "MDT coordinator to update EHR and send report to GP" },
+      { key: "next_steps.coordinator", label: "GP report", on: true, type: "item", value: "Send report to GP" },
     ],
   },
   {
@@ -161,13 +150,10 @@ const INITIAL_SECTIONS = [
     title: "MDT attendees",
     kind: "content",
     fields: [
-      { key: "attendees.chair", label: "Chair", on: true, type: "item", value: "Prof. Dr. Johan Muller – Colorectal Oncologist (Chair)" },
+      { key: "attendees.chair", label: "Chair", on: true, type: "item", value: "Prof. Dr. Johan Muller – Oncologist (Chair)" },
       { key: "attendees.surgeon", label: "Surgeon", on: true, type: "item", value: "Dr. Olivia Foster – Surgeon" },
       { key: "attendees.radiologist", label: "Radiologist", on: true, type: "item", value: "Dr. Elise van den Berg – Radiologist" },
       { key: "attendees.pathologist", label: "Pathologist", on: true, type: "item", value: "Dr. Lukas Schmidt – Pathologist" },
-      { key: "attendees.oncologist", label: "Medical oncologist", on: true, type: "item", value: "Dr. Claire Dubois – Medical Oncologist" },
-      { key: "attendees.nurse", label: "Cancer coordinator", on: true, type: "item", value: "Nurse Sophie de Graaf – Cancer Coordinator" },
-      { key: "attendees.admin", label: "MDT administrator", on: true, type: "item", value: "Mr. Rob Jansen – MDT Administrator" },
     ],
   },
 ];
@@ -407,7 +393,7 @@ function SectionCard({ section, expanded, onToggleExpand, onReorderFields, onTog
             {shown ? `${shown}/${total} visible` : "Hidden in output"}
           </span>
         </div>
-        <motion.span animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }} className="flex">
+        <motion.span initial={false} animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }} className="flex">
           <ChevronDown size={22} color={T.primary} />
         </motion.span>
       </div>
