@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { T } from "./tokens.js";
+import { SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf } from "./formVersions.js";
 import editIcon from "./icons/edit.svg";
 import usersIcon from "./icons/users.svg";
 import infoIcon from "./icons/info.svg";
@@ -25,10 +27,6 @@ const INFO_FIELDS = [
   ["speciality", "Speciality"],
 ];
 
-const FORM_OPTIONS = {
-  request: ["CRC request form v1", "CRC request form v2", "General MDT request v3"],
-  report: ["CRC request form v1", "Output form name v1.3", "CRC report form v2"],
-};
 
 const INITIAL_ORGS = ["Silver river memorial hospital", "Goldriver Hopsital", "Tergoii", "Private practice"];
 const ORG_DIRECTORY = ["UMC Utrecht", "St. Antonius Ziekenhuis", "Meander Medisch Centrum", "Diakonessenhuis"];
@@ -152,9 +150,11 @@ function MdtInfoCard({ info, onSave }) {
   );
 }
 
-function FormPicker({ label, value, options, onChange }) {
+function FormPicker({ source, state, outputForms, onPick, onCancel, onGoReview }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const { label, versions } = SOURCE_FORMS[source];
+  const activeIdx = versions.indexOf(state.active);
 
   useEffect(() => {
     if (!open) return;
@@ -163,18 +163,23 @@ function FormPicker({ label, value, options, onChange }) {
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
+  const inReview = outputForms.filter((f) => f.reviews.some((r) => r.source === source));
+  const totalAffected = state.pending ? outputForms.filter((f) => f.reviews.some((r) => r.source === source) || f.builtOn[source] === state.pending).length : 0;
+
   return (
     <div>
       <div className="flex items-center gap-1 text-[14px] font-semibold leading-6" style={{ color: T.bodyText }}>
         {label} *
-        <img src={infoIcon} alt="" className="w-6 h-6" title={`The ${label.toLowerCase()} used by this care unit`} />
+        <img src={infoIcon} alt="" className="w-6 h-6" title="Output forms take their fields from this questionnaire" />
       </div>
       <div ref={ref} className="relative flex items-center gap-1 text-[15px] leading-6">
         <img src={documentIcon} alt="" className="w-6 h-6" />
-        <span style={{ color: T.bodyText }}>{value}</span>
-        <button type="button" onClick={() => setOpen((o) => !o)} className="ml-1 hover:underline" style={{ color: T.primary }}>
-          Change
-        </button>
+        <span style={{ color: T.bodyText }}>{state.active}</span>
+        {!state.pending && (
+          <button type="button" onClick={() => setOpen((o) => !o)} className="ml-1 hover:underline" style={{ color: T.primary }}>
+            Change
+          </button>
+        )}
         <AnimatePresence>
           {open && (
             <motion.ul
@@ -182,37 +187,206 @@ function FormPicker({ label, value, options, onChange }) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -4 }}
               transition={{ duration: 0.15 }}
-              className="absolute left-6 top-7 z-20 min-w-[260px] bg-white rounded py-1 shadow-lg"
+              className="absolute left-6 top-7 z-20 min-w-[280px] bg-white rounded py-1 shadow-lg"
               style={{ border: `1px solid ${T.border}` }}
             >
-              {options.map((o) => (
-                <li key={o}>
-                  <button
-                    type="button"
-                    onClick={() => { onChange(o); setOpen(false); }}
-                    className="w-full text-left px-3 py-1.5 text-[15px] hover:bg-[#F7F8FA] flex items-center justify-between gap-4"
-                    style={{ color: T.bodyText, fontWeight: o === value ? 600 : 400 }}
-                  >
-                    {o}
-                    {o === value && <span className="text-[13px]" style={{ color: T.primary }}>Current</span>}
-                  </button>
-                </li>
-              ))}
+              {versions.map((v, i) => {
+                const current = i === activeIdx;
+                const older = i < activeIdx;
+                return (
+                  <li key={v}>
+                    <button
+                      type="button"
+                      disabled={current || older}
+                      onClick={() => { onPick(v); setOpen(false); }}
+                      className="w-full text-left px-3 py-1.5 text-[15px] hover:bg-[#F7F8FA] disabled:hover:bg-transparent disabled:cursor-default flex items-center justify-between gap-4"
+                      style={{ color: older ? T.gray600 : T.bodyText, fontWeight: current ? 600 : 400 }}
+                    >
+                      {v}
+                      {current && <span className="text-[13px]" style={{ color: T.primary }}>Current</span>}
+                      {older && <span className="text-[13px]">Older version</span>}
+                    </button>
+                  </li>
+                );
+              })}
             </motion.ul>
           )}
         </AnimatePresence>
       </div>
+
+      <AnimatePresence initial={false}>
+        {state.pending && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="mt-2 rounded px-3 py-2 text-[14px] leading-[1.5]" style={{ background: "#FFF8EC", border: "1px solid #FFB853", color: T.bodyText }}>
+              <div>
+                <strong>{state.pending}</strong> is waiting for review –{" "}
+                {totalAffected - inReview.length} of {totalAffected} affected output form{totalAffected > 1 ? "s" : ""} published.
+                It goes live once all are reviewed.
+              </div>
+              <div className="flex gap-4 mt-1">
+                <button type="button" onClick={() => onGoReview(source)} className="font-semibold hover:underline" style={{ color: T.primary }}>
+                  Review output forms
+                </button>
+                <button type="button" onClick={() => onCancel(source)} className="hover:underline" style={{ color: T.danger }}>
+                  Cancel change
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-function FormsCard({ forms, onChange }) {
+const KIND = {
+  added: { sign: "+", fg: T.primary, text: "added, hidden by default" },
+  removed: { sign: "−", fg: T.danger, text: "removed" },
+  changed: { sign: "~", fg: "#9A5B00", text: "changed" },
+};
+
+// Shown before a source form version change is started.
+function ImpactDialog({ change, sourceForms, outputForms, onConfirm, onClose }) {
+  const { source, target } = change;
+  const diff = FORM_DIFFS[target];
+  const from = sourceForms[source].active;
+  const impacts = outputForms.map((f) => ({ form: f, items: impactOf(f.sections, diff) }));
+  const affected = impacts.filter((i) => i.items.length);
+  const fieldChanges = [
+    ...diff.added.map((a) => ({ kind: "added", key: a.field.key, label: a.field.label })),
+    ...diff.removed.map((k) => ({ kind: "removed", key: k })),
+    ...Object.entries(diff.changed).map(([k, c]) => ({ kind: "changed", key: k, label: c.label })),
+  ];
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      style={{ background: "rgba(0,37,50,0.45)" }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onMouseDown={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="impact-title"
+        initial={{ y: 12, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        exit={{ y: 12, opacity: 0 }}
+        className="bg-white rounded w-full max-w-[640px] max-h-[calc(100vh-48px)] overflow-y-auto shadow-xl"
+      >
+        <div className="p-6" style={{ borderBottom: `1px solid ${T.border}` }}>
+          <h3 id="impact-title" className="text-[20px] font-semibold leading-[1.2]" style={{ color: T.bodyText }}>
+            Change {SOURCE_FORMS[source].label.toLowerCase()}?
+          </h3>
+          <p className="text-[15px] mt-1" style={{ color: T.gray600 }}>
+            {from} → <strong style={{ color: T.bodyText }}>{target}</strong>
+          </p>
+        </div>
+
+        <div className="p-6 flex flex-col gap-6">
+          <div>
+            <h4 className="text-[13px] uppercase tracking-[1px] font-bold mb-2" style={{ color: T.muted }}>Field changes in {versionOf(target)}</h4>
+            <ul className="flex flex-col gap-1">
+              {fieldChanges.map((c) => (
+                <li key={c.key} className="flex items-baseline gap-2 text-[15px]">
+                  <span className="w-4 text-center font-bold" style={{ color: KIND[c.kind].fg }}>{KIND[c.kind].sign}</span>
+                  <span style={{ fontFamily: T.mono, fontSize: 13, color: T.muted }}>{c.key}</span>
+                  <span style={{ color: T.bodyText }}>{c.label && c.kind !== "removed" ? `“${c.label}” ` : ""}{KIND[c.kind].text}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[13px] uppercase tracking-[1px] font-bold mb-2" style={{ color: T.muted }}>
+              Output forms ({affected.length} of {outputForms.length} need review)
+            </h4>
+            <ul className="rounded" style={{ border: `1px solid ${T.border}` }}>
+              {impacts.map(({ form, items }, i) => (
+                <li key={form.id} className="flex items-center justify-between gap-3 px-4 py-2.5" style={{ borderTop: i ? `1px solid ${T.border}` : "none" }}>
+                  <div>
+                    <div className="text-[15px] font-semibold" style={{ color: T.bodyText }}>
+                      {form.name} v{form.version}
+                      {items.length > 0 && <span className="font-normal" style={{ color: T.muted }}> → v{bumpVersion(form.version)}</span>}
+                    </div>
+                    {items.length > 0 && (
+                      <div className="text-[13px]" style={{ color: T.muted }}>
+                        {items.map((it) => `${KIND[it.kind].sign} ${it.label}`).join(" · ")}
+                      </div>
+                    )}
+                  </div>
+                  {items.length ? (
+                    <span className="text-[13px] font-semibold px-2 py-0.5 rounded-full shrink-0" style={{ background: "#FFF3E0", color: "#9A5B00" }}>
+                      {items.length} change{items.length > 1 ? "s" : ""}
+                    </span>
+                  ) : (
+                    <span className="text-[13px] shrink-0" style={{ color: T.muted }}>Not affected</span>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <ul className="text-[14px] leading-[1.5] flex flex-col gap-1 rounded-lg p-4" style={{ background: "rgba(0,128,163,0.05)", color: T.bodyText }}>
+            <li>• {from} stays active until every affected output form is reviewed and published.</li>
+            <li>• Cases already in progress keep {versionOf(from)} and their current output form versions.</li>
+            <li>• New fields are added hidden; removed fields are dropped when each output form is published.</li>
+          </ul>
+        </div>
+
+        <div className="px-6 py-4 flex justify-end gap-2" style={{ borderTop: `1px solid ${T.border}` }}>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={onConfirm}>{affected.length ? `Start review (${affected.length})` : "Change form"}</Button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function FormsCard({ sourceForms, outputForms, onStartChange, onCancelChange, onGoReview }) {
+  const [change, setChange] = useState(null);
   return (
     <Card title="Forms">
       <div className="flex flex-col gap-6">
-        <FormPicker label="REQUEST form questionnaire" value={forms.request} options={FORM_OPTIONS.request} onChange={(v) => onChange({ ...forms, request: v })} />
-        <FormPicker label="REPORT form questionnaire" value={forms.report} options={FORM_OPTIONS.report} onChange={(v) => onChange({ ...forms, report: v })} />
+        {Object.keys(SOURCE_FORMS).map((src) => (
+          <FormPicker
+            key={src}
+            source={src}
+            state={sourceForms[src]}
+            outputForms={outputForms}
+            onPick={(target) => setChange({ source: src, target })}
+            onCancel={onCancelChange}
+            onGoReview={onGoReview}
+          />
+        ))}
       </div>
+      {createPortal(
+      <AnimatePresence>
+        {change && (
+          <ImpactDialog
+            change={change}
+            sourceForms={sourceForms}
+            outputForms={outputForms}
+            onClose={() => setChange(null)}
+            onConfirm={() => { onStartChange(change.source, change.target); setChange(null); }}
+          />
+        )}
+      </AnimatePresence>,
+      document.body
+      )}
     </Card>
   );
 }
@@ -381,9 +555,8 @@ function ActivationCard({ active, setActive }) {
 
 /* -------------------------------------------------------------- page */
 
-export default function BasicInformation() {
+export default function BasicInformation({ sourceForms, outputForms, onStartChange, onCancelChange, onGoReview }) {
   const [info, setInfo] = useState(INITIAL_INFO);
-  const [forms, setForms] = useState({ request: "CRC request form v1", report: "CRC request form v1" });
   const [orgs, setOrgs] = useState(INITIAL_ORGS);
   const [mode, setMode] = useState("all");
   const [selected, setSelected] = useState([]);
@@ -395,7 +568,13 @@ export default function BasicInformation() {
       <div className="mt-6 flex flex-col lg:flex-row gap-6 items-start">
         <div className="flex-1 min-w-0 w-full flex flex-col gap-6">
           <MdtInfoCard info={info} onSave={setInfo} />
-          <FormsCard forms={forms} onChange={setForms} />
+          <FormsCard
+            sourceForms={sourceForms}
+            outputForms={outputForms}
+            onStartChange={onStartChange}
+            onCancelChange={onCancelChange}
+            onGoReview={onGoReview}
+          />
           <OrganisationsCard
             orgs={orgs}
             onAdd={(o) => setOrgs([...orgs, o])}
