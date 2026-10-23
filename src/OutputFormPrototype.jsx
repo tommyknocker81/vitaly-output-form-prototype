@@ -2,20 +2,8 @@ import { useState, useEffect, useRef, createContext, useContext } from "react";
 import { motion, AnimatePresence, Reorder, useDragControls, LayoutGroup } from "framer-motion";
 import { ChevronDown, ChevronLeft, Star, Bell, User, RotateCcw } from "lucide-react";
 
-// Vitaly RSO design tokens (Figma: OpenLine-Vitaly, node 14002:280778)
-const T = {
-  primary: "#0080A3",
-  danger: "#C74139",
-  border: "#DEE2E6",
-  cardBorder: "#BCC2C6",
-  bodyText: "#212529",
-  muted: "#727C82",
-  gray600: "#6C757D",
-  gray400: "#CED4DA",
-  light: "#F7F8FA",
-  fontFamily: "'Source Sans 3', 'Source Sans Pro', system-ui, sans-serif",
-  mono: "'JetBrains Mono', ui-monospace, monospace",
-};
+import { T } from "./tokens.js";
+import BasicInformation from "./BasicInformation.jsx";
 
 /*
  * Form data model. Every section is a card on the left and a block in the
@@ -264,9 +252,8 @@ function TopHeader() {
 }
 
 const UNIT_TABS = ["Basic information", "Output forms", "Meeting dates", "Video conferencing", "Members"];
-const UNIT_TAB_ACTIVE = 1; // this page
 
-function UnitHeader() {
+function UnitHeader({ activeTab, onChange }) {
   return (
     <div className="h-[94px] bg-white flex items-stretch justify-between" style={{ borderBottom: `1px solid ${T.border}` }}>
       <div className="flex items-stretch">
@@ -286,19 +273,24 @@ function UnitHeader() {
         </div>
       </div>
       <nav className="flex items-stretch pr-8">
-        {UNIT_TABS.map((t, i) => (
-          <span
-            key={t}
-            className="min-w-[145px] px-4 whitespace-nowrap flex items-center justify-center text-[13px] uppercase cursor-default"
-            style={{
-              color: i === UNIT_TAB_ACTIVE ? T.primary : T.bodyText,
-              fontWeight: i === UNIT_TAB_ACTIVE ? 700 : 400,
-              borderBottom: i === UNIT_TAB_ACTIVE ? `2px solid ${T.primary}` : "2px solid transparent",
-            }}
-          >
-            {t}
-          </span>
-        ))}
+        {UNIT_TABS.map((t, i) => {
+          const active = i === activeTab;
+          const enabled = i <= 1; // only Basic information and Output forms are mocked
+          return (
+            <button
+              key={t}
+              onClick={() => enabled && onChange(i)}
+              className={`relative min-w-[145px] px-4 whitespace-nowrap flex items-center justify-center text-[13px] uppercase ${enabled ? "cursor-pointer" : "cursor-default"}`}
+              style={{
+                color: active ? T.primary : T.bodyText,
+                fontWeight: active ? 700 : 400,
+                borderBottom: active ? `2px solid ${T.primary}` : "2px solid transparent",
+              }}
+            >
+              {t}
+            </button>
+          );
+        })}
       </nav>
     </div>
   );
@@ -471,9 +463,8 @@ function InlineBit({ k, sectionId, children }) {
       animate={{ opacity: 1, ...FLASH }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.25, backgroundColor: { duration: 1.4 } }}
-      style={{ ...litStyle(lit), display: "inline" }}
     >
-      {children}
+      <span style={litStyle(lit)}>{children}</span>
     </motion.span>
   );
 }
@@ -756,6 +747,7 @@ export default function OutputFormPrototype() {
   const [expanded, setExpanded] = useState(() => new Set(DEFAULT_EXPANDED));
   const [hover, setHover] = useState(null);
   const [docTab, setDocTab] = useState(0);
+  const [unitTab, setUnitTab] = useState(1); // 0 = Basic information, 1 = Output forms
   const scrollRef = useRef(null);
   const pendingScroll = useRef(null);
 
@@ -806,8 +798,9 @@ export default function OutputFormPrototype() {
       <SideNav />
       <div className="flex-1 min-w-0">
       <TopHeader />
-      <UnitHeader />
+      <UnitHeader activeTab={unitTab} onChange={setUnitTab} />
 
+      {unitTab === 0 ? <BasicInformation /> : (
       <main className="px-8 pt-6 pb-10">
         <div className="flex items-center justify-between">
           <h2 className="text-[22px] font-semibold leading-[1.2]">Output form name v1.3</h2>
@@ -873,6 +866,7 @@ export default function OutputFormPrototype() {
           </section>
         </div>
       </main>
+      )}
       </div>
     </div>
   );
