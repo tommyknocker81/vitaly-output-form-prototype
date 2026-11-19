@@ -54,7 +54,7 @@ const PATIENTS = [
       { name: "BAUER, Fredric", id: "5402170622", dob: "18/09/1957", sex: "m", tags: [], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Myers", referrer: "UMC Utrecht",
         v: { "case.organ_type": "Colon", "case.appointment_type": "First consultation", "case.prepared_by": "Radiology, Pathology", "case.surgery_date": "02.10.2024", "case.urgency": "High", "case.age_at_referral": "67", "case.diagnosis_date": "28.08.2024", "case.referral_reason": "Treatment plan", "case.second_opinion": "Yes", "case.tumour_stage": "T2 N0", "case.ecog_status": "0" } },
       { name: "ROSAIRE, Carry", id: "5402170622", dob: "18/09/1986", sex: "f", tags: ["Re-discussed", "Re-scheduled"], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Campbel", referrer: "Antonius",
-        v: { "case.organ_type": null, "case.appointment_type": "Re-discussion", "case.prepared_by": "Radiology", "case.surgery_date": "—", "case.urgency": "Normal", "case.age_at_referral": "38", "case.diagnosis_date": "11.07.2024", "case.referral_reason": "Second line", "case.second_opinion": "No", "case.tumour_stage": "T4 N2", "case.ecog_status": "2" } },
+        v: { "case.organ_type": "Colon", "case.appointment_type": "Re-discussion", "case.prepared_by": "Radiology", "case.surgery_date": "—", "case.urgency": "Normal", "case.age_at_referral": "38", "case.diagnosis_date": "11.07.2024", "case.referral_reason": "Second line", "case.second_opinion": "No", "case.tumour_stage": "T4 N2", "case.ecog_status": "2" } },
     ],
   },
   {
@@ -229,14 +229,7 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                           )}
                           {extra.map(({ key }) => (
                             <td key={key} className={cellBase} style={cellCfg(key)}>
-                              {r.v[key] === null ? (
-                                // null = required field left empty on the request form ("—" means not applicable)
-                                <span className="inline-flex items-center gap-1" style={{ color: T.danger }} title="Not filled in on the request form">
-                                  <X size={14} strokeWidth={2.5} /> Missing
-                                </span>
-                              ) : (
-                                r.v[key] ?? "—"
-                              )}
+                              {r.v[key] ?? "—"}
                             </td>
                           ))}
                         </tr>
@@ -280,7 +273,7 @@ function EditRow({ k, n, isNew, onRemove }) {
       <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: "#00566E" }}>{n}</span>
       <span className="flex-1 font-semibold text-[15px]">{f.label}</span>
       {isNew && <Chip bg="#E6F2F6" fg="#00566E">New</Chip>}
-      <TypeChip>{f.type}</TypeChip>
+      {f.retired ? <Chip bg="#F8E7E6" fg={T.danger}>Field removed</Chip> : <TypeChip>{f.type}</TypeChip>}
       <button type="button" aria-label={`Remove ${f.label}`} onClick={() => onRemove(k)} className="w-9 h-9 flex items-center justify-center rounded hover:bg-[#F7F8FA]" style={{ color: T.gray600 }}>
         <X size={16} />
       </button>
@@ -364,7 +357,7 @@ function Progress({ used, label }) {
   return (
     <div className="mt-4 flex items-center gap-2.5">
       <div className="flex-1 h-1.5 rounded" style={{ background: "#E3E7EA" }}>
-        <motion.div className="h-1.5 rounded" style={{ background: T.primary }} animate={{ width: `${(used / MAX_AGENDA_COLUMNS) * 100}%` }} />
+        <motion.div className="h-1.5 rounded" style={{ background: T.primary }} initial={false} animate={{ width: `${(used / MAX_AGENDA_COLUMNS) * 100}%` }} />
       </div>
       <span className="text-[13px] whitespace-nowrap" style={{ color: "#444C54" }}>{label ?? `${used} of ${MAX_AGENDA_COLUMNS} additional columns`}</span>
     </div>
@@ -379,9 +372,12 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
 
   const review = agenda.review;
   const removedInReview = review ? agenda.columns.filter((k) => FORM_DIFFS[review.to].removed.includes(k)) : [];
+  // Columns whose field no longer exists on the active request form: hidden on the agenda until removed here.
+  const orphans = agenda.columns.filter((k) => fieldByKey(k)?.retired);
+  const removeOrphans = () => setAgenda((a) => ({ ...a, columns: a.columns.filter((k) => !orphans.includes(k)) }));
   // While a review is pending the live form is still the old one; edit against it.
   const fields = columnFieldsFor(agenda.builtOn);
-  const columns = editing ? draft : agenda.columns;
+  const columns = editing ? draft.filter((k) => !orphans.includes(k)) : agenda.columns.filter((k) => !orphans.includes(k));
   const added = editing ? draft.filter((k) => !agenda.columns.includes(k)) : [];
   const available = fields.filter((f) => !draft.includes(f.key));
   const full = draft.length >= MAX_AGENDA_COLUMNS;
@@ -399,7 +395,7 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
 
   const status = editing ? (
     <Chip bg="#E6F2F6" fg="#00566E">Editing</Chip>
-  ) : review ? (
+  ) : review || orphans.length ? (
     <Chip bg={AMBER.chipBg} fg={AMBER.chipFg}>Needs review</Chip>
   ) : agenda.columns.length ? (
     <Chip bg="#E8F3E5" fg="#3E7A31">Up to date</Chip>
@@ -428,6 +424,19 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
         </div>
 
         <div className="px-6 pb-6">
+          {!editing && !review && orphans.length > 0 && (
+            <div role="status" className="mt-4 flex gap-2.5 p-3 rounded" style={{ background: AMBER.bg, border: `1px solid ${AMBER.border}` }}>
+              <AlertTriangle size={20} color={AMBER.icon} className="shrink-0 mt-0.5" />
+              <div className="text-[14px] leading-[1.5]">
+                <p className="font-semibold">{orphans.length} column{orphans.length > 1 ? "s use fields" : " uses a field"} no longer on the request form</p>
+                <p className="mt-0.5">It's not in {agenda.builtOn}, so it's already hidden on the agenda.</p>
+                <Btn className="mt-2.5" onClick={removeOrphans}>
+                  Remove {orphans.length} removed field{orphans.length > 1 ? "s" : ""}
+                </Btn>
+              </div>
+            </div>
+          )}
+
           {!editing && review && removedInReview.length > 0 && (
             <div role="status" className="mt-4 flex gap-2.5 p-3 rounded" style={{ background: AMBER.bg, border: `1px solid ${AMBER.border}` }}>
               <AlertTriangle size={20} color={AMBER.icon} className="shrink-0 mt-0.5" />
@@ -458,10 +467,10 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
                 <p className="mt-3.5 text-[14px]">Extra columns shown on the MDT meeting agenda, after the system columns.</p>
               )}
               <Progress
-                used={editing ? draft.length : agenda.columns.length - removedInReview.length}
+                used={editing ? draft.length : agenda.columns.length - removedInReview.length - orphans.length}
                 label={
-                  !editing && removedInReview.length
-                    ? `${agenda.columns.length - removedInReview.length} of ${MAX_AGENDA_COLUMNS} kept · ${removedInReview.length} removed`
+                  !editing && (removedInReview.length || orphans.length)
+                    ? `${agenda.columns.length - removedInReview.length - orphans.length} of ${MAX_AGENDA_COLUMNS} in use · ${removedInReview.length + orphans.length} removed`
                     : undefined
                 }
               />
@@ -478,22 +487,27 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
                     let n = 0;
                     return agenda.columns.map((k) => {
                       const f = fieldByKey(k);
-                      const gone = removedInReview.includes(k);
+                      const inReview = removedInReview.includes(k);
+                      const gone = inReview || orphans.includes(k);
                       if (!gone) n++;
                       return (
                         <li
                           key={k}
                           className="flex items-center gap-2.5 px-3 py-2.5 rounded"
-                          style={{ border: `1px solid ${gone ? "#E8B4B0" : T.border}`, background: gone ? "#FDF4F3" : "#fff" }}
+                          style={
+                            gone
+                              ? { border: "1px solid #F8E7E6", background: "#F8E7E6", boxShadow: `inset 3px 0 0 ${T.danger}` }
+                              : { border: `1px solid ${T.border}`, background: "#fff" }
+                          }
                         >
                           {gone ? (
-                            <AlertCircle size={22} color="#A3271F" />
+                            <AlertCircle size={22} color={T.danger} />
                           ) : (
                             <span className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[12px] font-bold" style={{ background: "#E6F2F6", color: "#00566E" }}>{n}</span>
                           )}
-                          <span className="flex-1 font-semibold" style={{ textDecoration: gone ? "line-through" : "none", color: gone ? "#A3271F" : T.bodyText }}>{f.label}</span>
+                          <span className="flex-1 font-semibold" style={{ textDecoration: gone ? "line-through" : "none", color: gone ? T.gray600 : T.bodyText }}>{f.label}</span>
                           {gone ? (
-                            <span className="text-[12px] font-semibold" style={{ color: "#A3271F" }}>Removed in {versionOf(review.to)}</span>
+                            <Chip bg="#fff" fg={T.danger}>{inReview ? `Removed in ${versionOf(review.to)}` : "Field removed"}</Chip>
                           ) : (
                             <TypeChip>{f.type}</TypeChip>
                           )}

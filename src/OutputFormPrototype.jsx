@@ -1064,7 +1064,7 @@ export default function OutputFormPrototype() {
   const [meetingTab, setMeetingTab] = useState(0);
   // Agenda columns read request-form fields, so they take part in request form reviews.
   const [agenda, setAgenda] = useState({
-    columns: ["case.organ_type", "case.appointment_type", "case.prepared_by", "case.surgery_date"],
+    columns: ["case.organ_type", "case.referral_source", "case.appointment_type", "case.prepared_by", "case.surgery_date"],
     builtOn: INITIAL_BUILT_ON.request,
     review: null,
   });

@@ -120,6 +120,8 @@ export const REQUEST_COLUMN_FIELDS = [
   { key: "case.second_opinion", label: "Second opinion", type: "Check-box" },
   { key: "case.tumour_stage", label: "Tumour stage", type: "Choice" },
   { key: "case.clinical_notes", label: "Clinical notes", type: "Text area", unsupported: "Text area – too long for a column" },
+  // No longer on the request form; kept only so older agenda configurations can still name it.
+  { key: "case.referral_source", label: "Referral source", type: "Choice", retired: true },
 ];
 
 export const MAX_AGENDA_COLUMNS = 9;
@@ -127,9 +129,9 @@ export const MAX_AGENDA_COLUMNS = 9;
 // Column-eligible fields of a request form version.
 export function columnFieldsFor(version) {
   const diff = FORM_DIFFS[version];
-  if (!diff) return REQUEST_COLUMN_FIELDS;
+  if (!diff) return REQUEST_COLUMN_FIELDS.filter((f) => !f.retired);
   return [
-    ...REQUEST_COLUMN_FIELDS.filter((f) => !diff.removed.includes(f.key)),
+    ...REQUEST_COLUMN_FIELDS.filter((f) => !f.retired && !diff.removed.includes(f.key)),
     ...(diff.columnAdded ?? []).map((f) => ({ ...f, isNew: true })),
   ];
 }
