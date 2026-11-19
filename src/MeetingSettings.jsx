@@ -54,7 +54,7 @@ const PATIENTS = [
       { name: "BAUER, Fredric", id: "5402170622", dob: "18/09/1957", sex: "m", tags: [], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Myers", referrer: "UMC Utrecht",
         v: { "case.organ_type": "Colon", "case.appointment_type": "First consultation", "case.prepared_by": "Radiology, Pathology", "case.surgery_date": "02.10.2024", "case.urgency": "High", "case.age_at_referral": "67", "case.diagnosis_date": "28.08.2024", "case.referral_reason": "Treatment plan", "case.second_opinion": "Yes", "case.tumour_stage": "T2 N0", "case.ecog_status": "0" } },
       { name: "ROSAIRE, Carry", id: "5402170622", dob: "18/09/1986", sex: "f", tags: ["Re-discussed", "Re-scheduled"], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Campbel", referrer: "Antonius",
-        v: { "case.organ_type": "Colon", "case.appointment_type": "Re-discussion", "case.prepared_by": "Radiology", "case.surgery_date": "—", "case.urgency": "Normal", "case.age_at_referral": "38", "case.diagnosis_date": "11.07.2024", "case.referral_reason": "Second line", "case.second_opinion": "No", "case.tumour_stage": "T4 N2", "case.ecog_status": "2" } },
+        v: { "case.organ_type": null, "case.appointment_type": "Re-discussion", "case.prepared_by": "Radiology", "case.surgery_date": "—", "case.urgency": "Normal", "case.age_at_referral": "38", "case.diagnosis_date": "11.07.2024", "case.referral_reason": "Second line", "case.second_opinion": "No", "case.tumour_stage": "T4 N2", "case.ecog_status": "2" } },
     ],
   },
   {
@@ -228,7 +228,16 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                             <td className={cellBase} style={{ color: T.gray400 }}>…</td>
                           )}
                           {extra.map(({ key }) => (
-                            <td key={key} className={cellBase} style={cellCfg(key)}>{r.v[key] ?? "—"}</td>
+                            <td key={key} className={cellBase} style={cellCfg(key)}>
+                              {r.v[key] === null ? (
+                                // null = required field left empty on the request form ("—" means not applicable)
+                                <span className="inline-flex items-center gap-1" style={{ color: T.danger }} title="Not filled in on the request form">
+                                  <X size={14} strokeWidth={2.5} /> Missing
+                                </span>
+                              ) : (
+                                r.v[key] ?? "—"
+                              )}
+                            </td>
                           ))}
                         </tr>
                       ))
