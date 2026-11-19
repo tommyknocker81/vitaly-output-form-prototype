@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { T } from "./tokens.js";
-import { SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf } from "./formVersions.js";
+import { SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, agendaImpact } from "./formVersions.js";
 import editIcon from "./icons/edit.svg";
 import usersIcon from "./icons/users.svg";
 import infoIcon from "./icons/info.svg";
@@ -150,7 +150,7 @@ function MdtInfoCard({ info, onSave }) {
   );
 }
 
-function FormPicker({ source, state, outputForms, onPick, onCancel, onGoReview }) {
+function FormPicker({ source, state, outputForms, agenda, onPick, onCancel, onGoReview }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const { label, versions } = SOURCE_FORMS[source];
@@ -163,8 +163,13 @@ function FormPicker({ source, state, outputForms, onPick, onCancel, onGoReview }
     return () => document.removeEventListener("mousedown", close);
   }, [open]);
 
-  const inReview = outputForms.filter((f) => f.reviews.some((r) => r.source === source));
-  const totalAffected = state.pending ? outputForms.filter((f) => f.reviews.some((r) => r.source === source) || f.builtOn[source] === state.pending).length : 0;
+  // Items that depend on this form: output forms, plus the agenda columns for the request form.
+  const dependents = [
+    ...outputForms.map((f) => ({ inReview: f.reviews.some((r) => r.source === source), done: f.builtOn[source] === state.pending })),
+    ...(source === "request" ? [{ inReview: agenda.review?.source === source, done: agenda.builtOn === state.pending }] : []),
+  ];
+  const inReview = dependents.filter((d) => d.inReview);
+  const totalAffected = state.pending ? dependents.filter((d) => d.inReview || d.done).length : 0;
 
   return (
     <div>
@@ -225,12 +230,12 @@ function FormPicker({ source, state, outputForms, onPick, onCancel, onGoReview }
             <div className="mt-2 rounded px-3 py-2 text-[14px] leading-[1.5]" style={{ background: "#FFF8EC", border: "1px solid #FFB853", color: T.bodyText }}>
               <div>
                 <strong>{state.pending}</strong> is waiting for review –{" "}
-                {totalAffected - inReview.length} of {totalAffected} affected output form{totalAffected > 1 ? "s" : ""} published.
+                {totalAffected - inReview.length} of {totalAffected} affected item{totalAffected > 1 ? "s" : ""} reviewed.
                 It goes live once all are reviewed.
               </div>
               <div className="flex gap-4 mt-1">
                 <button type="button" onClick={() => onGoReview(source)} className="font-semibold hover:underline" style={{ color: T.primary }}>
-                  Review output forms
+                  Review affected items
                 </button>
                 <button type="button" onClick={() => onCancel(source)} className="hover:underline" style={{ color: T.danger }}>
                   Cancel change
@@ -251,15 +256,19 @@ const KIND = {
 };
 
 // Shown before a source form version change is started.
-function ImpactDialog({ change, sourceForms, outputForms, onConfirm, onClose }) {
+function ImpactDialog({ change, sourceForms, outputForms, agenda, onConfirm, onClose }) {
   const { source, target } = change;
   const diff = FORM_DIFFS[target];
   const from = sourceForms[source].active;
-  const impacts = outputForms.map((f) => ({ form: f, items: impactOf(f.sections, diff) }));
+  const impacts = [
+    ...outputForms.map((f) => ({ id: f.id, title: `${f.name} v${f.version}`, next: `v${bumpVersion(f.version)}`, items: impactOf(f.sections, diff) })),
+    ...(source === "request" ? [{ id: "agenda", title: "Meeting agenda columns", next: null, items: agendaImpact(agenda.columns, diff) }] : []),
+  ];
   const affected = impacts.filter((i) => i.items.length);
   const fieldChanges = [
     ...diff.added.map((a) => ({ kind: "added", key: a.field.key, label: a.field.label })),
     ...diff.removed.map((k) => ({ kind: "removed", key: k })),
+    ...(diff.columnAdded ?? []).map((f) => ({ kind: "added", key: f.key, label: f.label })),
     ...Object.entries(diff.changed).map(([k, c]) => ({ kind: "changed", key: k, label: c.label })),
   ];
 
@@ -312,15 +321,15 @@ function ImpactDialog({ change, sourceForms, outputForms, onConfirm, onClose }) 
 
           <div>
             <h4 className="text-[13px] uppercase tracking-[1px] font-bold mb-2" style={{ color: T.muted }}>
-              Output forms ({affected.length} of {outputForms.length} need review)
+              Affected items ({affected.length} of {impacts.length} need review)
             </h4>
             <ul className="rounded" style={{ border: `1px solid ${T.border}` }}>
-              {impacts.map(({ form, items }, i) => (
-                <li key={form.id} className="flex items-center justify-between gap-3 px-4 py-2.5" style={{ borderTop: i ? `1px solid ${T.border}` : "none" }}>
+              {impacts.map(({ id, title, next, items }, i) => (
+                <li key={id} className="flex items-center justify-between gap-3 px-4 py-2.5" style={{ borderTop: i ? `1px solid ${T.border}` : "none" }}>
                   <div>
                     <div className="text-[15px] font-semibold" style={{ color: T.bodyText }}>
-                      {form.name} v{form.version}
-                      {items.length > 0 && <span className="font-normal" style={{ color: T.muted }}> → v{bumpVersion(form.version)}</span>}
+                      {title}
+                      {items.length > 0 && next && <span className="font-normal" style={{ color: T.muted }}> → {next}</span>}
                     </div>
                     {items.length > 0 && (
                       <div className="text-[13px]" style={{ color: T.muted }}>
@@ -341,7 +350,7 @@ function ImpactDialog({ change, sourceForms, outputForms, onConfirm, onClose }) 
           </div>
 
           <ul className="text-[14px] leading-[1.5] flex flex-col gap-1 rounded-lg p-4" style={{ background: "rgba(0,128,163,0.05)", color: T.bodyText }}>
-            <li>• {from} stays active until every affected output form is reviewed and published.</li>
+            <li>• {from} stays active until every affected output form and the agenda columns are reviewed.</li>
             <li>• Cases already in progress keep {versionOf(from)} and their current output form versions.</li>
             <li>• New fields are added hidden; removed fields are dropped when each output form is published.</li>
           </ul>
@@ -356,7 +365,7 @@ function ImpactDialog({ change, sourceForms, outputForms, onConfirm, onClose }) 
   );
 }
 
-function FormsCard({ sourceForms, outputForms, onStartChange, onCancelChange, onGoReview }) {
+function FormsCard({ sourceForms, outputForms, agenda, onStartChange, onCancelChange, onGoReview }) {
   const [change, setChange] = useState(null);
   return (
     <Card title="Forms">
@@ -367,6 +376,7 @@ function FormsCard({ sourceForms, outputForms, onStartChange, onCancelChange, on
             source={src}
             state={sourceForms[src]}
             outputForms={outputForms}
+            agenda={agenda}
             onPick={(target) => setChange({ source: src, target })}
             onCancel={onCancelChange}
             onGoReview={onGoReview}
@@ -380,6 +390,7 @@ function FormsCard({ sourceForms, outputForms, onStartChange, onCancelChange, on
             change={change}
             sourceForms={sourceForms}
             outputForms={outputForms}
+            agenda={agenda}
             onClose={() => setChange(null)}
             onConfirm={() => { onStartChange(change.source, change.target); setChange(null); }}
           />
@@ -555,7 +566,7 @@ function ActivationCard({ active, setActive }) {
 
 /* -------------------------------------------------------------- page */
 
-export default function BasicInformation({ sourceForms, outputForms, onStartChange, onCancelChange, onGoReview }) {
+export default function BasicInformation({ sourceForms, outputForms, agenda, onStartChange, onCancelChange, onGoReview }) {
   const [info, setInfo] = useState(INITIAL_INFO);
   const [orgs, setOrgs] = useState(INITIAL_ORGS);
   const [mode, setMode] = useState("all");
@@ -571,6 +582,7 @@ export default function BasicInformation({ sourceForms, outputForms, onStartChan
           <FormsCard
             sourceForms={sourceForms}
             outputForms={outputForms}
+            agenda={agenda}
             onStartChange={onStartChange}
             onCancelChange={onCancelChange}
             onGoReview={onGoReview}

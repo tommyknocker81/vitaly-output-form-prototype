@@ -36,7 +36,8 @@ export const FORM_DIFFS = {
       { section: "summary", field: { key: "summary.ecog", label: "ECOG performance status", type: "para", value: "ECOG performance status: 1." } },
       { section: "pathology", field: { key: "pathology.pdl1", label: "PD-L1 status", type: "item", value: "PD-L1: CPS < 1" } },
     ],
-    removed: ["pathology.kras"],
+    removed: ["pathology.kras", "case.appointment_type", "case.surgery_date"],
+    columnAdded: [{ key: "case.ecog_status", label: "ECOG status", type: "Choice" }],
     changed: {
       "radiology.modality": { label: "Imaging modality & date", value: "CT Abdomen/Pelvis with contrast – 01/05/2025" },
       "clinician.name": { label: "Referring clinician" },
@@ -103,3 +104,43 @@ export function publishSections(sections) {
       .map(({ status, was, ...f }) => f),
   }));
 }
+
+/* ---------------------------------------------------- agenda columns */
+
+// Short, typed request-form fields a meeting agenda can show as a column.
+export const REQUEST_COLUMN_FIELDS = [
+  { key: "case.organ_type", label: "Organ type", type: "Choice" },
+  { key: "case.appointment_type", label: "Appointment type", type: "Choice" },
+  { key: "case.prepared_by", label: "Prepared by", type: "String" },
+  { key: "case.surgery_date", label: "Surgery date", type: "Date" },
+  { key: "case.urgency", label: "Urgency level", type: "Choice" },
+  { key: "case.age_at_referral", label: "Age at referral", type: "Numeric" },
+  { key: "case.diagnosis_date", label: "Date of diagnosis", type: "Date" },
+  { key: "case.referral_reason", label: "Referral reason", type: "Choice" },
+  { key: "case.second_opinion", label: "Second opinion", type: "Check-box" },
+  { key: "case.tumour_stage", label: "Tumour stage", type: "Choice" },
+  { key: "case.clinical_notes", label: "Clinical notes", type: "Text area", unsupported: "Text area – too long for a column" },
+];
+
+export const MAX_AGENDA_COLUMNS = 9;
+
+// Column-eligible fields of a request form version.
+export function columnFieldsFor(version) {
+  const diff = FORM_DIFFS[version];
+  if (!diff) return REQUEST_COLUMN_FIELDS;
+  return [
+    ...REQUEST_COLUMN_FIELDS.filter((f) => !diff.removed.includes(f.key)),
+    ...(diff.columnAdded ?? []).map((f) => ({ ...f, isNew: true })),
+  ];
+}
+
+// Configured agenda columns a version change would remove.
+export function agendaImpact(columns, diff) {
+  return columns
+    .filter((k) => diff.removed.includes(k))
+    .map((k) => ({ kind: "removed", key: k, label: REQUEST_COLUMN_FIELDS.find((f) => f.key === k)?.label ?? k }));
+}
+
+export const fieldByKey = (key) =>
+  REQUEST_COLUMN_FIELDS.find((f) => f.key === key) ??
+  Object.values(FORM_DIFFS).flatMap((d) => d.columnAdded ?? []).find((f) => f.key === key);

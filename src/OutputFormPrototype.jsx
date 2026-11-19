@@ -4,7 +4,8 @@ import { ChevronDown, ChevronLeft, Star, Bell, User, RotateCcw, AlertTriangle, C
 
 import { T } from "./tokens.js";
 import BasicInformation from "./BasicInformation.jsx";
-import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections } from "./formVersions.js";
+import MeetingSettings from "./MeetingSettings.jsx";
+import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact } from "./formVersions.js";
 
 /*
  * Form data model. Every section is a card on the left and a block in the
@@ -252,7 +253,7 @@ function TopHeader() {
   );
 }
 
-const UNIT_TABS = ["Basic information", "Output forms", "Meeting dates", "Video conferencing", "Members"];
+const UNIT_TABS = ["Basic information", "Output forms", "Meeting", "Members"];
 
 function UnitHeader({ activeTab, onChange }) {
   return (
@@ -276,7 +277,7 @@ function UnitHeader({ activeTab, onChange }) {
       <nav className="flex items-stretch pr-8">
         {UNIT_TABS.map((t, i) => {
           const active = i === activeTab;
-          const enabled = i <= 1; // only Basic information and Output forms are mocked
+          const enabled = i <= 2; // Members is not mocked
           return (
             <button
               key={t}
@@ -1060,6 +1061,17 @@ export default function OutputFormPrototype() {
     report: { active: INITIAL_BUILT_ON.report, pending: null },
   });
   const [toast, setToast] = useState(null);
+  const [meetingTab, setMeetingTab] = useState(0);
+  // Agenda columns read request-form fields, so they take part in request form reviews.
+  const [agenda, setAgenda] = useState({
+    columns: ["case.organ_type", "case.appointment_type", "case.prepared_by", "case.surgery_date"],
+    builtOn: INITIAL_BUILT_ON.request,
+    review: null,
+  });
+
+  // A pending source version goes live once nothing that depends on it is still in review.
+  const stillInReview = (source, forms, agendaState) =>
+    forms.some((f) => f.reviews.some((r) => r.source === source)) || agendaState.review?.source === source;
 
   useEffect(() => {
     if (!toast) return;
@@ -1094,6 +1106,10 @@ export default function OutputFormPrototype() {
         baseline: sections,
       };
     });
+    if (source === "request" && agendaImpact(agenda.columns, diff).length) {
+      affected++;
+      setAgenda((a) => ({ ...a, review: { source, from, to: target } }));
+    }
     setOutputForms(next);
     if (affected) setSourceForms((sf) => ({ ...sf, [source]: { ...sf[source], pending: target } }));
     else activate(source, target);
@@ -1108,8 +1124,9 @@ export default function OutputFormPrototype() {
         return { ...f, reviews: rest, sections, baseline: sections, preReview: rest.length ? f.preReview : null };
       })
     );
+    if (agenda.review?.source === source) setAgenda((a) => ({ ...a, review: null }));
     setSourceForms((sf) => ({ ...sf, [source]: { ...sf[source], pending: null } }));
-    setToast("Form change cancelled. Output forms restored.");
+    setToast("Form change cancelled. Everything is back as it was.");
   };
 
   const publish = () => {
@@ -1124,22 +1141,39 @@ export default function OutputFormPrototype() {
     setOutputForms(next);
     let activated = false;
     for (const r of done) {
-      if (!next.some((f) => f.reviews.some((x) => x.source === r.source))) {
+      if (!stillInReview(r.source, next, agenda)) {
         activate(r.source, r.to);
         activated = true;
       }
     }
     if (!activated) {
-      const left = next.filter((f) => f.reviews.length).length;
-      setToast(`${activeForm.name} v${bumpVersion(activeForm.version)} published. ${left} output form${left > 1 ? "s" : ""} still to review.`);
+      const left = next.filter((f) => f.reviews.length).length + (agenda.review ? 1 : 0);
+      setToast(`${activeForm.name} v${bumpVersion(activeForm.version)} published. ${left} item${left > 1 ? "s" : ""} still to review.`);
     }
   };
 
   const goReview = (source) => {
     const first = outputForms.find((f) => f.reviews.some((r) => r.source === source));
-    if (first) setActiveId(first.id);
-    setUnitTab(1);
+    if (first) {
+      setActiveId(first.id);
+      setUnitTab(1);
+    } else if (agenda.review?.source === source) {
+      setMeetingTab(2);
+      setUnitTab(2);
+    }
     window.scrollTo({ top: 0 });
+  };
+
+  const confirmAgendaReview = () => {
+    const r = agenda.review;
+    const removed = FORM_DIFFS[r.to].removed;
+    const nextAgenda = { columns: agenda.columns.filter((k) => !removed.includes(k)), builtOn: r.to, review: null };
+    setAgenda(nextAgenda);
+    if (!stillInReview(r.source, outputForms, nextAgenda)) activate(r.source, r.to);
+    else {
+      const left = outputForms.filter((f) => f.reviews.some((x) => x.source === r.source)).length;
+      setToast(`Agenda columns confirmed. ${left} output form${left > 1 ? "s" : ""} still to review.`);
+    }
   };
 
   return (
@@ -1154,6 +1188,7 @@ export default function OutputFormPrototype() {
           <BasicInformation
             sourceForms={sourceForms}
             outputForms={outputForms}
+            agenda={agenda}
             onStartChange={startChange}
             onCancelChange={cancelChange}
             onGoReview={goReview}
@@ -1167,6 +1202,16 @@ export default function OutputFormPrototype() {
             onSelectForm={setActiveId}
             setSections={setSections}
             onPublish={publish}
+          />
+        </div>
+        <div className={unitTab === 2 ? "" : "hidden"}>
+          <MeetingSettings
+            tab={meetingTab}
+            setTab={setMeetingTab}
+            agenda={agenda}
+            setAgenda={setAgenda}
+            requestForm={sourceForms.request.active}
+            onConfirmAgendaReview={confirmAgendaReview}
           />
         </div>
       </div>
