@@ -274,11 +274,7 @@ function EditRow({ k, n, isNew, onRemove }) {
           {[4, 9, 14].flatMap((y) => [4, 10].map((x) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" />))}
         </svg>
       </button>
-      {f.retired ? (
-        <span className="w-5" aria-hidden="true" />
-      ) : (
-        <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: "#00566E" }}>{n}</span>
-      )}
+      <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: f.retired ? T.danger : "#00566E" }}>{n}</span>
       <span className="flex-1 font-semibold text-[15px]" style={f.retired ? { textDecoration: "line-through", color: T.gray600 } : undefined}>{f.label}</span>
       {isNew && <Chip bg="#E6F2F6" fg="#00566E">New</Chip>}
       <TypeChip>{f.type}</TypeChip>
@@ -526,8 +522,8 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
 
               {editing ? (
                 <Reorder.Group axis="y" values={draft} onReorder={setDraft} className="mt-3.5 flex flex-col gap-1.5">
-                  {draft.map((k) => (
-                    <EditRow key={k} k={k} n={draft.filter((x) => !fieldByKey(x)?.retired).indexOf(k) + 1} isNew={added.includes(k)} onRemove={(x) => setDraft((d) => d.filter((y) => y !== x))} />
+                  {draft.map((k, i) => (
+                    <EditRow key={k} k={k} n={i + 1} isNew={added.includes(k)} onRemove={(x) => setDraft((d) => d.filter((y) => y !== x))} />
                   ))}
                 </Reorder.Group>
               ) : (
