@@ -5,6 +5,7 @@ import { ChevronDown, ChevronLeft, Star, Bell, User, RotateCcw, AlertTriangle, C
 import { T } from "./tokens.js";
 import BasicInformation from "./BasicInformation.jsx";
 import MeetingSettings from "./MeetingSettings.jsx";
+import HelpDrawer from "./HelpDrawer.jsx";
 import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact } from "./formVersions.js";
 
 /*
@@ -1215,6 +1216,9 @@ export default function OutputFormPrototype() {
           />
         </div>
       </div>
+
+      {/* Page documentation; only pages with an entry in pageDocs.js get the button. */}
+      <HelpDrawer page={unitTab === 2 && meetingTab === 2 ? "meeting/agenda-columns" : null} />
 
       <AnimatePresence>
         {toast && (
