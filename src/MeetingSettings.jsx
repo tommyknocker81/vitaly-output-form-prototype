@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import { Pencil, X, Plus, Search, AlertCircle, AlertTriangle, ChevronDown, CalendarDays, Video, Info } from "lucide-react";
 import { T } from "./tokens.js";
@@ -271,9 +271,9 @@ function EditRow({ k, n, isNew, onRemove }) {
         </svg>
       </button>
       <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: "#00566E" }}>{n}</span>
-      <span className="flex-1 font-semibold text-[15px]">{f.label}</span>
+      <span className="flex-1 font-semibold text-[15px]" style={f.retired ? { textDecoration: "line-through", color: T.gray600 } : undefined}>{f.label}</span>
       {isNew && <Chip bg="#E6F2F6" fg="#00566E">New</Chip>}
-      {f.retired ? <Chip bg="#F8E7E6" fg={T.danger}>Field removed</Chip> : <TypeChip>{f.type}</TypeChip>}
+      <TypeChip>{f.type}</TypeChip>
       <button type="button" aria-label={`Remove ${f.label}`} onClick={() => onRemove(k)} className="w-9 h-9 flex items-center justify-center rounded hover:bg-[#F7F8FA]" style={{ color: T.gray600 }}>
         <X size={16} />
       </button>
@@ -341,6 +341,47 @@ function FieldPicker({ available, onAdd, full }) {
         )}
       </ul>
     </motion.div>
+  );
+}
+
+// Icon with an explanatory tooltip, shown on hover and keyboard focus.
+function InfoTip({ label, children }) {
+  const [open, setOpen] = useState(false);
+  const id = useId();
+  return (
+    <span className="relative flex">
+      <button
+        type="button"
+        aria-label={label}
+        aria-describedby={open ? id : undefined}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
+        className="flex rounded-full focus:outline-none focus-visible:ring-2"
+        style={{ "--tw-ring-color": T.danger }}
+      >
+        <AlertCircle size={22} color={T.danger} />
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.span
+            id={id}
+            role="tooltip"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute left-[-10px] bottom-[calc(100%+10px)] z-30 w-[300px] rounded px-3.5 py-3 text-[13px] leading-[1.5] text-white shadow-lg"
+            style={{ background: "#002532" }}
+          >
+            {children}
+            <span className="absolute left-[17px] -bottom-[5px] w-2.5 h-2.5 rotate-45" style={{ background: "#002532" }} />
+          </motion.span>
+        )}
+      </AnimatePresence>
+    </span>
   );
 }
 
@@ -501,16 +542,30 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
                           }
                         >
                           {gone ? (
-                            <AlertCircle size={22} color={T.danger} />
+                            <InfoTip label={`Why ${f.label} is marked as removed`}>
+                              {inReview ? (
+                                <>
+                                  <span className="block font-semibold mb-1">Field removed in {review.to}</span>
+                                  The new version of the request form no longer contains this field. Once the change goes live, this column can't be shown on the agenda.
+                                  <span className="block mt-2" style={{ color: "#B9D3DC" }}>
+                                    To delete it, use <strong className="text-white">Remove {removedInReview.length} column{removedInReview.length > 1 ? "s" : ""} and confirm</strong> above.
+                                  </span>
+                                </>
+                              ) : (
+                                <>
+                                  <span className="block font-semibold mb-1">Field no longer on the request form</span>
+                                  The request form has been updated and no longer contains this field, so this column is hidden on the agenda.
+                                  <span className="block mt-2" style={{ color: "#B9D3DC" }}>
+                                    To delete it, use <strong className="text-white">Remove {orphans.length} removed field{orphans.length > 1 ? "s" : ""}</strong> above, or click <strong className="text-white">Edit</strong> and remove it with ×.
+                                  </span>
+                                </>
+                              )}
+                            </InfoTip>
                           ) : (
                             <span className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[12px] font-bold" style={{ background: "#E6F2F6", color: "#00566E" }}>{n}</span>
                           )}
                           <span className="flex-1 font-semibold" style={{ textDecoration: gone ? "line-through" : "none", color: gone ? T.gray600 : T.bodyText }}>{f.label}</span>
-                          {gone ? (
-                            <Chip bg="#fff" fg={T.danger}>{inReview ? `Removed in ${versionOf(review.to)}` : "Field removed"}</Chip>
-                          ) : (
-                            <TypeChip>{f.type}</TypeChip>
-                          )}
+                          <TypeChip>{f.type}</TypeChip>
                         </li>
                       );
                     });
