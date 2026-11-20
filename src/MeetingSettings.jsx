@@ -275,9 +275,7 @@ function EditRow({ k, n, isNew, onRemove }) {
         </svg>
       </button>
       {f.retired ? (
-        <span className="w-5 flex justify-center">
-          <AlertCircle size={22} color={T.danger} aria-label="Field removed from the request form" role="img" />
-        </span>
+        <span className="w-5" aria-hidden="true" />
       ) : (
         <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: "#00566E" }}>{n}</span>
       )}
