@@ -276,13 +276,7 @@ function EditRow({ k, n, isNew, onRemove }) {
       </button>
       {f.retired ? (
         <span className="w-5 flex justify-center">
-          <InfoTip label={`Why ${f.label} is marked as removed`}>
-            <span className="block font-semibold mb-1">Field no longer on the request form</span>
-            The request form has been updated and no longer contains this field, so this column is hidden on the agenda.
-            <span className="block mt-2" style={{ color: "#B9D3DC" }}>
-              To delete it, remove it with × and save the columns.
-            </span>
-          </InfoTip>
+          <AlertCircle size={22} color={T.danger} aria-label="Field removed from the request form" role="img" />
         </span>
       ) : (
         <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: "#00566E" }}>{n}</span>
