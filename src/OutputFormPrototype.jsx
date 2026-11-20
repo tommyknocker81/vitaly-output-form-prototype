@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, createContext, useContext } from "react";
+import { useState, useEffect, useRef, useMemo, createContext, useContext } from "react";
 import { motion, AnimatePresence, Reorder, useDragControls, LayoutGroup } from "framer-motion";
 import { ChevronDown, ChevronLeft, Star, Bell, User, RotateCcw, AlertTriangle, CheckCircle2 } from "lucide-react";
 
@@ -1053,16 +1053,66 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
 
 /* -------------------------------------------------------------- page */
 
+/* ---------------------------------------------------------- deep links */
+
+// Every tab has its own link, e.g. #/meeting/agenda-columns or #/output-forms/gp-letter.
+const UNIT_SLUGS = ["basic-information", "output-forms", "meeting"];
+const MEETING_SLUGS = ["meeting-dates", "video-conferencing", "agenda-columns"];
+
+function routeFromHash(hash = window.location.hash) {
+  const [unit, sub] = hash.replace(/^#\/?/, "").split("/");
+  const unitTab = UNIT_SLUGS.indexOf(unit);
+  if (unitTab < 0) return null;
+  return {
+    unitTab,
+    meetingTab: unitTab === 2 ? Math.max(0, MEETING_SLUGS.indexOf(sub)) : undefined,
+    formId: unitTab === 1 && INITIAL_OUTPUT_FORMS.some((f) => f.id === sub) ? sub : undefined,
+  };
+}
+
+function hashFor(unitTab, meetingTab, formId) {
+  if (unitTab === 1) return `#/output-forms/${formId}`;
+  if (unitTab === 2) return `#/meeting/${MEETING_SLUGS[meetingTab]}`;
+  return `#/${UNIT_SLUGS[unitTab]}`;
+}
+
 export default function OutputFormPrototype() {
-  const [unitTab, setUnitTab] = useState(1); // 0 = Basic information, 1 = Output forms
+  const initialRoute = useMemo(() => routeFromHash(), []);
+  const [unitTab, setUnitTab] = useState(initialRoute?.unitTab ?? 1); // 0 = Basic information, 1 = Output forms, 2 = Meeting
   const [outputForms, setOutputForms] = useState(INITIAL_OUTPUT_FORMS);
-  const [activeId, setActiveId] = useState(INITIAL_OUTPUT_FORMS[0].id);
+  const [activeId, setActiveId] = useState(initialRoute?.formId ?? INITIAL_OUTPUT_FORMS[0].id);
   const [sourceForms, setSourceForms] = useState({
     request: { active: INITIAL_BUILT_ON.request, pending: null },
     report: { active: INITIAL_BUILT_ON.report, pending: null },
   });
   const [toast, setToast] = useState(null);
-  const [meetingTab, setMeetingTab] = useState(0);
+  const [meetingTab, setMeetingTab] = useState(initialRoute?.meetingTab ?? 0);
+
+  // Keep the address bar in step with the open tab (a history entry per change, so Back works)…
+  useEffect(() => {
+    const h = hashFor(unitTab, meetingTab, activeId);
+    if (window.location.hash !== h) {
+      if (window.location.hash) window.history.pushState(null, "", h);
+      else window.history.replaceState(null, "", h);
+    }
+  }, [unitTab, meetingTab, activeId]);
+
+  // …and follow the address bar when it changes (Back/Forward, a pasted link).
+  useEffect(() => {
+    const onNav = () => {
+      const r = routeFromHash();
+      if (!r) return;
+      setUnitTab(r.unitTab);
+      if (r.meetingTab !== undefined) setMeetingTab(r.meetingTab);
+      if (r.formId) setActiveId(r.formId);
+    };
+    window.addEventListener("popstate", onNav);
+    window.addEventListener("hashchange", onNav);
+    return () => {
+      window.removeEventListener("popstate", onNav);
+      window.removeEventListener("hashchange", onNav);
+    };
+  }, []);
   // Agenda columns read request-form fields, so they take part in request form reviews.
   const [agenda, setAgenda] = useState({
     columns: ["case.organ_type", "case.referral_source", "case.appointment_type", "case.prepared_by", "case.surgery_date"],

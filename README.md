@@ -11,3 +11,17 @@ npm run dev   # http://localhost:5182
 ```
 
 Live: https://tommyknocker81.github.io/vitaly-output-form-prototype/
+
+## Direct links
+
+Each tab has its own link (the address bar follows as you click; Back/Forward work):
+
+| Page | Link |
+| --- | --- |
+| Basic information | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/basic-information |
+| Output forms › MDT final report | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/output-forms/mdt-report |
+| Output forms › GP summary letter | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/output-forms/gp-letter |
+| Output forms › Attendance record | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/output-forms/attendance |
+| Meeting › Meeting dates | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/meeting/meeting-dates |
+| Meeting › Video conferencing | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/meeting/video-conferencing |
+| Meeting › Agenda columns | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/meeting/agenda-columns |
