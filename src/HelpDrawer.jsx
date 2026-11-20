@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, X, ChevronDown, ExternalLink } from "lucide-react";
+import { BookOpen, X, ChevronDown, Copy, Check } from "lucide-react";
 import { T } from "./tokens.js";
 import { PAGE_DOCS } from "./pageDocs.js";
 
@@ -10,6 +10,50 @@ function Rich({ text }) {
   return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
     part.startsWith("**") ? <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong> : part
   );
+}
+
+// The page's documentation as plain text, structured so it pastes cleanly into another document.
+function docAsText(doc) {
+  const plain = (t) => t.replace(/\*\*/g, "");
+  const lines = [
+    `${doc.title} – documentation`,
+    doc.path,
+    "",
+    "OVERVIEW",
+    ...doc.overview.map(plain),
+    `In scope: ${doc.scope.in}`,
+    `Out of scope: ${doc.scope.out}`,
+    "",
+    "RULES",
+    ...doc.rules.map(([k, v]) => `- ${k}: ${v}`),
+  ];
+  for (const e of doc.epics) {
+    lines.push("", e.title.toUpperCase());
+    for (const st of e.stories) {
+      lines.push("", `Story ${st.title}`, st.story, "Acceptance criteria:", ...st.ac.map((a) => `- ${plain(a)}`));
+    }
+  }
+  lines.push("", "OPEN QUESTIONS", ...doc.openQuestions.map((q) => `- ${q}`));
+  return lines.join("\n");
+}
+
+async function copyText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    // Clipboard API blocked (e.g. insecure context): fall back to a hidden textarea.
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    ta.remove();
+    return ok;
+  }
 }
 
 function SectionTitle({ children }) {
@@ -115,6 +159,7 @@ function DocBody({ doc }) {
 export default function HelpDrawer({ page }) {
   const doc = PAGE_DOCS[page];
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(null); // null | "ok" | "fail"
   const closeRef = useRef(null);
   const triggerRef = useRef(null);
 
@@ -125,6 +170,12 @@ export default function HelpDrawer({ page }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const t = setTimeout(() => setCopied(null), 2500);
+    return () => clearTimeout(t);
+  }, [copied]);
 
   // Close when the page changes underneath the drawer.
   useEffect(() => setOpen(false), [page]);
@@ -199,15 +250,21 @@ export default function HelpDrawer({ page }) {
                 <DocBody doc={doc} />
               </div>
               <footer className="px-6 py-4" style={{ borderTop: `1px solid ${T.border}`, background: "#FAFBFC" }}>
-                <a
-                  href={doc.fullDoc}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 text-[14px] font-semibold hover:underline"
-                  style={{ color: T.primary }}
-                >
-                  Open the full backlog document <ExternalLink size={14} />
-                </a>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={async () => setCopied((await copyText(docAsText(doc))) ? "ok" : "fail")}
+                    className="inline-flex items-center gap-1.5 px-[13px] py-[7px] rounded text-[15px] font-semibold hover:bg-[#F2FAFC]"
+                    style={{ border: `1px solid ${T.primary}`, color: T.primary, background: "#fff" }}
+                  >
+                    {copied === "ok" ? <Check size={16} /> : <Copy size={16} />}
+                    {copied === "ok" ? "Copied" : "Copy as text"}
+                  </button>
+                  <span role="status" className="text-[13px]" style={{ color: copied === "fail" ? T.danger : T.muted }}>
+                    {copied === "ok" && "Paste it into any document."}
+                    {copied === "fail" && "Couldn't copy. Select the text and copy it manually."}
+                  </span>
+                </div>
               </footer>
             </motion.aside>
           </>
