@@ -256,8 +256,12 @@ function EditRow({ k, n, isNew, onRemove }) {
       dragListener={false}
       dragControls={controls}
       whileDrag={{ boxShadow: "0 4px 12px rgba(0,37,50,.14)", borderColor: T.primary, background: "#F2FAFC", zIndex: 10 }}
-      className="relative flex items-center gap-1.5 py-1 pl-0.5 pr-1 rounded bg-white select-none"
-      style={{ border: `1px solid ${T.border}` }}
+      className="relative flex items-center gap-1.5 py-1 pl-0.5 pr-1 rounded select-none"
+      style={
+        f.retired
+          ? { border: "1px solid #F8E7E6", background: "#F8E7E6", boxShadow: `inset 3px 0 0 ${T.danger}` }
+          : { border: `1px solid ${T.border}`, background: "#fff" }
+      }
     >
       <button
         type="button"
@@ -270,7 +274,19 @@ function EditRow({ k, n, isNew, onRemove }) {
           {[4, 9, 14].flatMap((y) => [4, 10].map((x) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" />))}
         </svg>
       </button>
-      <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: "#00566E" }}>{n}</span>
+      {f.retired ? (
+        <span className="w-5 flex justify-center">
+          <InfoTip label={`Why ${f.label} is marked as removed`}>
+            <span className="block font-semibold mb-1">Field no longer on the request form</span>
+            The request form has been updated and no longer contains this field, so this column is hidden on the agenda.
+            <span className="block mt-2" style={{ color: "#B9D3DC" }}>
+              To delete it, remove it with × and save the columns.
+            </span>
+          </InfoTip>
+        </span>
+      ) : (
+        <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: "#00566E" }}>{n}</span>
+      )}
       <span className="flex-1 font-semibold text-[15px]" style={f.retired ? { textDecoration: "line-through", color: T.gray600 } : undefined}>{f.label}</span>
       {isNew && <Chip bg="#E6F2F6" fg="#00566E">New</Chip>}
       <TypeChip>{f.type}</TypeChip>
@@ -508,7 +524,7 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
                 <p className="mt-3.5 text-[14px]">Extra columns shown on the MDT meeting agenda, after the system columns.</p>
               )}
               <Progress
-                used={editing ? draft.length : agenda.columns.length - removedInReview.length - orphans.length}
+                used={editing ? draft.filter((k) => !fieldByKey(k)?.retired).length : agenda.columns.length - removedInReview.length - orphans.length}
                 label={
                   !editing && (removedInReview.length || orphans.length)
                     ? `${agenda.columns.length - removedInReview.length - orphans.length} of ${MAX_AGENDA_COLUMNS} in use · ${removedInReview.length + orphans.length} removed`
@@ -518,8 +534,8 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
 
               {editing ? (
                 <Reorder.Group axis="y" values={draft} onReorder={setDraft} className="mt-3.5 flex flex-col gap-1.5">
-                  {draft.map((k, i) => (
-                    <EditRow key={k} k={k} n={i + 1} isNew={added.includes(k)} onRemove={(x) => setDraft((d) => d.filter((y) => y !== x))} />
+                  {draft.map((k) => (
+                    <EditRow key={k} k={k} n={draft.filter((x) => !fieldByKey(x)?.retired).indexOf(k) + 1} isNew={added.includes(k)} onRemove={(x) => setDraft((d) => d.filter((y) => y !== x))} />
                   ))}
                 </Reorder.Group>
               ) : (
