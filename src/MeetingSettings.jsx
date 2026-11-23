@@ -2,6 +2,7 @@ import { useState, useId } from "react";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import { Pencil, X, Plus, Search, AlertCircle, AlertTriangle, ChevronDown, CalendarDays, Video, Info } from "lucide-react";
 import { T } from "./tokens.js";
+import GripIcon from "./GripIcon.jsx";
 import { MAX_AGENDA_COLUMNS, columnFieldsFor, fieldByKey, versionOf, FORM_DIFFS } from "./formVersions.js";
 
 // Care unit › Meeting (agenda columns from the "Care unit – Meeting agenda columns" canvas,
@@ -268,11 +269,8 @@ function EditRow({ k, n, isNew, onRemove }) {
         aria-label={`Reorder ${f.label}`}
         onPointerDown={(e) => controls.start(e)}
         className="w-7 h-9 flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
-        style={{ color: "#8A949C" }}
       >
-        <svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor" aria-hidden="true">
-          {[4, 9, 14].flatMap((y) => [4, 10].map((x) => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" />))}
-        </svg>
+        <GripIcon />
       </button>
       <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: f.retired ? T.danger : "#00566E" }}>{n}</span>
       <span className="flex-1 font-semibold text-[15px]" style={f.retired ? { textDecoration: "line-through", color: T.gray600 } : undefined}>{f.label}</span>

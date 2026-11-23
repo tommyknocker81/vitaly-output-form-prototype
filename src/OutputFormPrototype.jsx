@@ -6,6 +6,7 @@ import { T } from "./tokens.js";
 import BasicInformation from "./BasicInformation.jsx";
 import MeetingSettings from "./MeetingSettings.jsx";
 import HelpDrawer from "./HelpDrawer.jsx";
+import GripIcon from "./GripIcon.jsx";
 import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact } from "./formVersions.js";
 
 /*
@@ -156,13 +157,12 @@ const visibleFields = (s) => s.fields.filter((f) => f.on);
 /* ---------------------------------------------------------------- icons */
 
 // 4×4 dot grid used as the drag handle in the Figma cards.
-function DragDots({ color = T.gray600 }) {
-  const dots = [];
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) dots.push(<circle key={`${r}${c}`} cx={4.5 + c * 5} cy={4.5 + r * 5} r={1} />);
+// Drag handle in a 24px slot so rows and section headers keep their alignment.
+function DragDots({ color = T.gray400 }) {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill={color} aria-hidden="true">
-      {dots}
-    </svg>
+    <span className="w-6 h-6 flex items-center justify-center">
+      <GripIcon color={color} />
+    </span>
   );
 }
 
