@@ -6,8 +6,9 @@ import { T } from "./tokens.js";
 import BasicInformation from "./BasicInformation.jsx";
 import MeetingSettings from "./MeetingSettings.jsx";
 import HelpDrawer from "./HelpDrawer.jsx";
+import Prepopulation from "./Prepopulation.jsx";
 import GripIcon from "./GripIcon.jsx";
-import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact } from "./formVersions.js";
+import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact, prepopImpact } from "./formVersions.js";
 
 /*
  * Form data model. Every section is a card on the left and a block in the
@@ -256,7 +257,7 @@ function TopHeader() {
 
 const UNIT_TABS = ["Basic information", "Forms", "Meeting", "Members"];
 
-function UnitHeader({ activeTab, onChange }) {
+function UnitHeader({ activeTab, onChange, flags = [] }) {
   return (
     <div className="h-[94px] bg-white flex items-stretch justify-between" style={{ borderBottom: `1px solid ${T.border}` }}>
       <div className="flex items-stretch">
@@ -291,6 +292,7 @@ function UnitHeader({ activeTab, onChange }) {
               }}
             >
               {t}
+              {flags[i] && <span className="ml-1.5 w-2 h-2 rounded-full" style={{ background: "#FFB853" }} aria-label="Needs review" />}
             </button>
           );
         })}
@@ -793,17 +795,81 @@ function Preview({ sections }) {
   );
 }
 
+// EMR output: the same report as a structured note sent to the EHR, not a styled letter.
+function EmrValue({ f }) {
+  if (f.type === "list") {
+    return (
+      <>
+        {f.lead && <div><Val f={f}>{f.lead}</Val></div>}
+        {f.items.map((it) => <div key={it}>- <Val f={f}>{it}</Val></div>)}
+      </>
+    );
+  }
+  return <Val f={f} />;
+}
+
+function EmrPreview({ sections }) {
+  const visible = sections.filter((s) => visibleFields(s).length > 0);
+  return (
+    <div className="bg-white mx-auto max-w-[760px] shadow-[0_1px_3px_rgba(0,0,0,0.06)] rounded" style={{ fontFamily: T.fontFamily }}>
+      <div className="flex items-center justify-between gap-4 px-6 py-3 rounded-t" style={{ background: "#002532", color: "#fff" }}>
+        <span className="text-[13px] font-semibold uppercase tracking-[1px]">EMR note · MDT report</span>
+        <span className="text-[12px]" style={{ color: "#B9D3DC", fontFamily: T.mono }}>Composition · sent on publish</span>
+      </div>
+      <div className="px-6 py-5 flex flex-col gap-5 text-[14px] leading-[1.55]" style={{ color: T.bodyText }}>
+        {visible.length === 0 && (
+          <p className="italic text-center py-8" style={{ color: T.gray600 }}>All fields are hidden — nothing will be sent to the EMR.</p>
+        )}
+        {visible.map((s) => (
+          <section key={s.id}>
+            <h4 className="text-[12px] font-bold uppercase tracking-[1px] pb-1 mb-2" style={{ color: T.primary, borderBottom: `1px solid ${T.border}` }}>
+              {s.title}
+            </h4>
+            {s.kind === "content" ? (
+              <div className="flex flex-col gap-0.5">
+                {visibleFields(s).map((f, i) => (
+                  <div key={f.key}>
+                    {f.type === "item" ? <>{s.ordered ? `${i + 1}.` : "-"} <Val f={f} /></> : <EmrValue f={f} />}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <dl className="grid grid-cols-[180px_1fr] gap-x-4 gap-y-0.5">
+                {visibleFields(s).map((f) => (
+                  <div key={f.key} className="contents">
+                    <dt style={{ color: T.muted }}>{f.label}</dt>
+                    <dd><Val f={f} /></dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ------------------------------------------------------- output forms */
 
 const pick = (ids) => INITIAL_SECTIONS.filter((s) => ids.includes(s.id));
 const INITIAL_BUILT_ON = { request: "CRC request form v1", report: "CRC report form v1" };
+
+// The EMR output starts from the PDF set-up minus what a structured EHR note doesn't need.
+const EMR_HIDDEN = ["meeting.time", "attendees.radiologist", "attendees.pathologist"];
+function emrDefaults(sections) {
+  return sections.map((s) => ({ ...s, fields: s.fields.map((f) => (EMR_HIDDEN.includes(f.key) ? { ...f, on: false } : f)) }));
+}
 
 // A care unit can own several output forms; each picks its own sections.
 const INITIAL_OUTPUT_FORMS = [
   { id: "mdt-report", name: "MDT final report", version: "1.3", sections: INITIAL_SECTIONS },
   { id: "gp-letter", name: "GP summary letter", version: "2.1", sections: pick(["general", "patient", "clinician", "summary", "mdt", "next_steps"]) },
   { id: "attendance", name: "Attendance record", version: "1.0", sections: pick(["general", "attendees"]) },
-].map((f) => ({ ...f, baseline: f.sections, builtOn: INITIAL_BUILT_ON, reviews: [], preReview: null }));
+].map((f) => {
+  const emr = emrDefaults(f.sections);
+  return { ...f, baseline: f.sections, emr: { sections: emr, baseline: emr }, builtOn: INITIAL_BUILT_ON, reviews: [], preReview: null };
+});
 
 const sourcesUsed = (sections) => [...new Set(sections.map((s) => SECTION_SOURCE[s.id]).filter((x) => x !== "system"))];
 
@@ -835,7 +901,7 @@ function OutputFormSwitcher({ forms, active, onSelect }) {
   return (
     <div ref={ref} className="relative">
       <button type="button" onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 text-left">
-        <h2 className="text-[22px] font-semibold leading-[1.2]">{active.name} v{active.version}</h2>
+        <h3 className="text-[18px] font-semibold leading-[1.2]">{active.name} v{active.version}</h3>
         <ChevronDown size={20} color={T.primary} />
         <StatusChip form={active} />
       </button>
@@ -920,11 +986,17 @@ function ReviewBanner({ form, onPublish }) {
   );
 }
 
-function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish }) {
-  const sections = form.sections;
+const CHANNELS = [
+  ["pdf", "PDF output"],
+  ["emr", "EMR output"],
+];
+
+function OutputFormEditor({ form, forms, onSelectForm, channel, setChannel, setSections, onPublish }) {
+  // PDF and EMR each keep their own field visibility and order.
+  const sections = channel === "emr" ? form.emr.sections : form.sections;
+  const baseline = channel === "emr" ? form.emr.baseline : form.baseline;
   const [expanded, setExpanded] = useState(() => new Set(DEFAULT_EXPANDED));
   const [hover, setHover] = useState(null);
-  const [docTab, setDocTab] = useState(0);
   const scrollRef = useRef(null);
   const pendingScroll = useRef(null);
 
@@ -971,11 +1043,11 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
     return () => clearTimeout(t);
   }, [sections]);
 
-  const isDirty = sections !== form.baseline;
+  const isDirty = sections !== baseline;
   const used = sourcesUsed(sections);
 
   return (
-    <main className="px-8 pt-6 pb-10">
+    <div>
       <div className="flex items-start justify-between gap-4">
         <div>
           <OutputFormSwitcher forms={forms} active={form} onSelect={onSelectForm} />
@@ -984,7 +1056,7 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
           </div>
         </div>
         <button
-          onClick={() => setSections(form.baseline)}
+          onClick={() => setSections(baseline)}
           disabled={!isDirty}
           className="flex items-center gap-1.5 text-[14px] font-semibold disabled:opacity-0 transition-opacity mt-1"
           style={{ color: T.primary }}
@@ -995,20 +1067,30 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
 
       {form.reviews.length > 0 && <ReviewBanner form={form} onPublish={onPublish} />}
 
-      <div className="mt-6 flex gap-6" style={{ borderBottom: `1px solid ${T.border}` }}>
-        {["PDF output document", "EMR outpust document"].map((t, i) => (
-          <button
-            key={t}
-            onClick={() => i === 0 && setDocTab(0)}
-            className={`pb-2 text-[15px] -mb-px ${i === 0 ? "cursor-pointer" : "cursor-default"}`}
-            style={{
-              fontWeight: docTab === i ? 600 : 400,
-              borderBottom: docTab === i ? `2px solid ${T.primary}` : "2px solid transparent",
-            }}
-          >
-            {t}
-          </button>
-        ))}
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <span className="text-[14px] font-semibold" style={{ color: T.bodyText }}>Output</span>
+        <div role="group" aria-label="Output document" className="inline-flex rounded overflow-hidden" style={{ border: `1px solid ${T.gray400}` }}>
+          {CHANNELS.map(([id, label], i) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={channel === id}
+              onClick={() => setChannel(id)}
+              className="px-4 py-1.5 text-[14px]"
+              style={{
+                background: channel === id ? "#E6F2F6" : "#fff",
+                color: channel === id ? "#00566E" : "#444C54",
+                fontWeight: channel === id ? 600 : 400,
+                borderLeft: i ? `1px solid ${T.gray400}` : "none",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="text-[13px]" style={{ color: T.muted }}>
+          {channel === "pdf" ? "The printable report (PDF)." : "The structured note sent to the patient's EHR."} Each output has its own field set-up.
+        </span>
       </div>
 
       <div className="mt-6 grid gap-6 items-start grid-cols-1 lg:grid-cols-[minmax(420px,737fr)_minmax(0,1039fr)]">
@@ -1034,7 +1116,7 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
           style={{ border: `1px solid ${T.cardBorder}` }}
         >
           <div className="p-6 flex items-center justify-between">
-            <span className="text-[16px] font-bold uppercase tracking-[1px] leading-[1.2]">Preview</span>
+            <span className="text-[16px] font-bold uppercase tracking-[1px] leading-[1.2]">Preview · {channel === "emr" ? "EMR" : "PDF"}</span>
             <span className="text-[13px]" style={{ color: T.muted }}>
               {sections.reduce((n, s) => n + visibleFields(s).length, 0)} of{" "}
               {sections.reduce((n, s) => n + s.fields.length, 0)} fields shown
@@ -1042,11 +1124,36 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
           </div>
           <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-[30px] py-4" style={{ background: T.light }}>
             <HoverCtx.Provider value={{ hover }}>
-              <Preview sections={sections} />
+              {channel === "emr" ? <EmrPreview sections={sections} /> : <Preview sections={sections} />}
             </HoverCtx.Provider>
           </div>
         </section>
       </div>
+    </div>
+  );
+}
+
+const FORMS_TABS = ["Output documents", "Report form pre-population"];
+
+function FormsPage({ tab, setTab, needsReview, children }) {
+  return (
+    <main className="px-8 pt-6 pb-10">
+      <h2 className="text-[22px] font-semibold leading-[1.2]">Forms</h2>
+      <div className="mt-6 mb-6 flex gap-6" style={{ borderBottom: `1px solid ${T.border}` }}>
+        {FORMS_TABS.map((t, i) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(i)}
+            className="pb-2 text-[15px] -mb-px flex items-center gap-1.5"
+            style={{ fontWeight: tab === i ? 600 : 400, borderBottom: tab === i ? `2px solid ${T.primary}` : "2px solid transparent" }}
+          >
+            {t}
+            {needsReview[i] && <span className="w-2 h-2 rounded-full" style={{ background: "#FFB853" }} aria-label="Needs review" />}
+          </button>
+        ))}
+      </div>
+      {children}
     </main>
   );
 }
@@ -1055,7 +1162,7 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
 
 /* ---------------------------------------------------------- deep links */
 
-// Every tab has its own link, e.g. #/meeting/agenda-columns or #/output-forms/gp-letter.
+// Every tab has its own link, e.g. #/meeting/agenda-columns, #/forms/gp-letter/emr or #/forms/pre-population.
 const UNIT_SLUGS = ["basic-information", "forms", "meeting"];
 const MEETING_SLUGS = ["meeting-dates", "video-conferencing", "agenda-columns"];
 
@@ -1064,15 +1171,18 @@ function routeFromHash(hash = window.location.hash) {
   // "output-forms" was the earlier name of the Forms tab; old links keep working.
   const unitTab = UNIT_SLUGS.indexOf(unit === "output-forms" ? "forms" : unit);
   if (unitTab < 0) return null;
+  const channel = hash.split("/")[3];
   return {
     unitTab,
     meetingTab: unitTab === 2 ? Math.max(0, MEETING_SLUGS.indexOf(sub)) : undefined,
+    formsTab: unitTab === 1 ? (sub === "pre-population" ? 1 : 0) : undefined,
     formId: unitTab === 1 && INITIAL_OUTPUT_FORMS.some((f) => f.id === sub) ? sub : undefined,
+    channel: unitTab === 1 && sub !== "pre-population" ? (channel === "emr" ? "emr" : "pdf") : undefined,
   };
 }
 
-function hashFor(unitTab, meetingTab, formId) {
-  if (unitTab === 1) return `#/forms/${formId}`;
+function hashFor(unitTab, meetingTab, formId, formsTab, channel) {
+  if (unitTab === 1) return formsTab === 1 ? "#/forms/pre-population" : `#/forms/${formId}${channel === "emr" ? "/emr" : ""}`;
   if (unitTab === 2) return `#/meeting/${MEETING_SLUGS[meetingTab]}`;
   return `#/${UNIT_SLUGS[unitTab]}`;
 }
@@ -1088,15 +1198,29 @@ export default function OutputFormPrototype() {
   });
   const [toast, setToast] = useState(null);
   const [meetingTab, setMeetingTab] = useState(initialRoute?.meetingTab ?? 0);
+  const [formsTab, setFormsTab] = useState(initialRoute?.formsTab ?? 0);
+  const [channel, setChannel] = useState(initialRoute?.channel ?? "pdf");
+  // Report pre-population maps request fields to report fields, so both forms' reviews can touch it.
+  const [prepop, setPrepop] = useState({
+    mappings: [
+      { from: "req.proposed_conclusion", to: "rep.conclusion" },
+      { from: "req.proposed_policy", to: "rep.policy" },
+      { from: "req.proposed_study", to: "rep.clinical_study" },
+      { from: "req.diagnosis", to: "rep.diagnosis" },
+      { from: "req.organ_type", to: "rep.organ_structure" },
+    ],
+    builtOn: { ...INITIAL_BUILT_ON },
+    reviews: [],
+  });
 
   // Keep the address bar in step with the open tab (a history entry per change, so Back works)…
   useEffect(() => {
-    const h = hashFor(unitTab, meetingTab, activeId);
+    const h = hashFor(unitTab, meetingTab, activeId, formsTab, channel);
     if (window.location.hash !== h) {
       if (window.location.hash) window.history.pushState(null, "", h);
       else window.history.replaceState(null, "", h);
     }
-  }, [unitTab, meetingTab, activeId]);
+  }, [unitTab, meetingTab, activeId, formsTab, channel]);
 
   // …and follow the address bar when it changes (Back/Forward, a pasted link).
   useEffect(() => {
@@ -1105,7 +1229,9 @@ export default function OutputFormPrototype() {
       if (!r) return;
       setUnitTab(r.unitTab);
       if (r.meetingTab !== undefined) setMeetingTab(r.meetingTab);
+      if (r.formsTab !== undefined) setFormsTab(r.formsTab);
       if (r.formId) setActiveId(r.formId);
+      if (r.channel) setChannel(r.channel);
     };
     window.addEventListener("popstate", onNav);
     window.addEventListener("hashchange", onNav);
@@ -1122,8 +1248,10 @@ export default function OutputFormPrototype() {
   });
 
   // A pending source version goes live once nothing that depends on it is still in review.
-  const stillInReview = (source, forms, agendaState) =>
-    forms.some((f) => f.reviews.some((r) => r.source === source)) || agendaState.review?.source === source;
+  const stillInReview = (source, forms, agendaState, prepopState = prepop) =>
+    forms.some((f) => f.reviews.some((r) => r.source === source)) ||
+    agendaState.review?.source === source ||
+    prepopState.reviews.some((r) => r.source === source);
 
   useEffect(() => {
     if (!toast) return;
@@ -1134,7 +1262,13 @@ export default function OutputFormPrototype() {
   const activeForm = outputForms.find((f) => f.id === activeId);
 
   const setSections = (upd) =>
-    setOutputForms((fs) => fs.map((f) => (f.id === activeId ? { ...f, sections: typeof upd === "function" ? upd(f.sections) : upd } : f)));
+    setOutputForms((fs) =>
+      fs.map((f) => {
+        if (f.id !== activeId) return f;
+        if (channel === "emr") return { ...f, emr: { ...f.emr, sections: typeof upd === "function" ? upd(f.emr.sections) : upd } };
+        return { ...f, sections: typeof upd === "function" ? upd(f.sections) : upd };
+      })
+    );
 
   const activate = (source, version) => {
     setSourceForms((sf) => ({ ...sf, [source]: { active: version, pending: null } }));
@@ -1150,14 +1284,20 @@ export default function OutputFormPrototype() {
       if (!impactOf(f.sections, diff).length) return f;
       affected++;
       const sections = applyDiff(f.sections, diff);
+      const emr = applyDiff(f.emr.sections, diff);
       return {
         ...f,
-        preReview: f.reviews.length ? f.preReview : f.sections,
+        preReview: f.reviews.length ? f.preReview : { pdf: f.sections, emr: f.emr.sections },
         reviews: [...f.reviews, { source, from, to: target }],
         sections,
         baseline: sections,
+        emr: { sections: emr, baseline: emr },
       };
     });
+    if (prepopImpact(prepop.mappings, diff, source).length) {
+      affected++;
+      setPrepop((p) => ({ ...p, reviews: [...p.reviews, { source, from, to: target }] }));
+    }
     if (source === "request" && agendaImpact(agenda.columns, diff).length) {
       affected++;
       setAgenda((a) => ({ ...a, review: { source, from, to: target } }));
@@ -1172,11 +1312,13 @@ export default function OutputFormPrototype() {
       fs.map((f) => {
         if (!f.reviews.some((r) => r.source === source)) return f;
         const rest = f.reviews.filter((r) => r.source !== source);
-        const sections = rest.reduce((acc, r) => applyDiff(acc, FORM_DIFFS[r.to]), f.preReview);
-        return { ...f, reviews: rest, sections, baseline: sections, preReview: rest.length ? f.preReview : null };
+        const sections = rest.reduce((acc, r) => applyDiff(acc, FORM_DIFFS[r.to]), f.preReview.pdf);
+        const emr = rest.reduce((acc, r) => applyDiff(acc, FORM_DIFFS[r.to]), f.preReview.emr);
+        return { ...f, reviews: rest, sections, baseline: sections, emr: { sections: emr, baseline: emr }, preReview: rest.length ? f.preReview : null };
       })
     );
     if (agenda.review?.source === source) setAgenda((a) => ({ ...a, review: null }));
+    setPrepop((p) => ({ ...p, reviews: p.reviews.filter((r) => r.source !== source) }));
     setSourceForms((sf) => ({ ...sf, [source]: { ...sf[source], pending: null } }));
     setToast("Form change cancelled. Everything is back as it was.");
   };
@@ -1186,9 +1328,10 @@ export default function OutputFormPrototype() {
     const next = outputForms.map((f) => {
       if (f.id !== activeId) return f;
       const sections = publishSections(f.sections);
+      const emr = publishSections(f.emr.sections);
       const builtOn = { ...f.builtOn };
       done.forEach((r) => (builtOn[r.source] = r.to));
-      return { ...f, sections, baseline: sections, version: bumpVersion(f.version), builtOn, reviews: [], preReview: null };
+      return { ...f, sections, baseline: sections, emr: { sections: emr, baseline: emr }, version: bumpVersion(f.version), builtOn, reviews: [], preReview: null };
     });
     setOutputForms(next);
     let activated = false;
@@ -1199,7 +1342,7 @@ export default function OutputFormPrototype() {
       }
     }
     if (!activated) {
-      const left = next.filter((f) => f.reviews.length).length + (agenda.review ? 1 : 0);
+      const left = next.filter((f) => f.reviews.length).length + (agenda.review ? 1 : 0) + (prepop.reviews.length ? 1 : 0);
       setToast(`${activeForm.name} v${bumpVersion(activeForm.version)} published. ${left} item${left > 1 ? "s" : ""} still to review.`);
     }
   };
@@ -1209,11 +1352,33 @@ export default function OutputFormPrototype() {
     if (first) {
       setActiveId(first.id);
       setUnitTab(1);
+      setFormsTab(0);
     } else if (agenda.review?.source === source) {
       setMeetingTab(2);
       setUnitTab(2);
+    } else if (prepop.reviews.some((r) => r.source === source)) {
+      setFormsTab(1);
+      setUnitTab(1);
     }
     window.scrollTo({ top: 0 });
+  };
+
+  const confirmPrepopReview = () => {
+    const done = prepop.reviews;
+    const broken = (m) =>
+      done.some((r) => FORM_DIFFS[r.to].removed.includes(r.source === "request" ? m.from : m.to));
+    const builtOn = { ...prepop.builtOn };
+    done.forEach((r) => (builtOn[r.source] = r.to));
+    const next = { mappings: prepop.mappings.filter((m) => !broken(m)), builtOn, reviews: [] };
+    setPrepop(next);
+    let activated = false;
+    for (const r of done) {
+      if (!stillInReview(r.source, outputForms, agenda, next)) {
+        activate(r.source, r.to);
+        activated = true;
+      }
+    }
+    if (!activated) setToast("Pre-population confirmed. Other affected items are still to review.");
   };
 
   const confirmAgendaReview = () => {
@@ -1222,10 +1387,7 @@ export default function OutputFormPrototype() {
     const nextAgenda = { columns: agenda.columns.filter((k) => !removed.includes(k)), builtOn: r.to, review: null };
     setAgenda(nextAgenda);
     if (!stillInReview(r.source, outputForms, nextAgenda)) activate(r.source, r.to);
-    else {
-      const left = outputForms.filter((f) => f.reviews.some((x) => x.source === r.source)).length;
-      setToast(`Agenda columns confirmed. ${left} output form${left > 1 ? "s" : ""} still to review.`);
-    }
+    else setToast("Agenda columns confirmed. Other affected items are still to review.");
   };
 
   return (
@@ -1233,7 +1395,11 @@ export default function OutputFormPrototype() {
       <SideNav />
       <div className="flex-1 min-w-0">
         <TopHeader />
-        <UnitHeader activeTab={unitTab} onChange={setUnitTab} />
+        <UnitHeader
+          activeTab={unitTab}
+          onChange={setUnitTab}
+          flags={[false, outputForms.some((f) => f.reviews.length) || prepop.reviews.length > 0, !!agenda.review]}
+        />
 
         {/* Both pages stay mounted so their state survives tab switches. */}
         <div className={unitTab === 0 ? "" : "hidden"}>
@@ -1241,20 +1407,33 @@ export default function OutputFormPrototype() {
             sourceForms={sourceForms}
             outputForms={outputForms}
             agenda={agenda}
+            prepop={prepop}
             onStartChange={startChange}
             onCancelChange={cancelChange}
             onGoReview={goReview}
           />
         </div>
         <div className={unitTab === 1 ? "" : "hidden"}>
-          <OutputFormEditor
-            key={activeId}
-            form={activeForm}
-            forms={outputForms}
-            onSelectForm={setActiveId}
-            setSections={setSections}
-            onPublish={publish}
-          />
+          <FormsPage
+            tab={formsTab}
+            setTab={setFormsTab}
+            needsReview={[outputForms.some((f) => f.reviews.length), prepop.reviews.length > 0]}
+          >
+            {formsTab === 0 ? (
+              <OutputFormEditor
+                key={`${activeId}-${channel}`}
+                form={activeForm}
+                forms={outputForms}
+                onSelectForm={setActiveId}
+                channel={channel}
+                setChannel={setChannel}
+                setSections={setSections}
+                onPublish={publish}
+              />
+            ) : (
+              <Prepopulation prepop={prepop} setPrepop={setPrepop} onConfirmReview={confirmPrepopReview} />
+            )}
+          </FormsPage>
         </div>
         <div className={unitTab === 2 ? "" : "hidden"}>
           <MeetingSettings
@@ -1269,7 +1448,11 @@ export default function OutputFormPrototype() {
       </div>
 
       {/* Page documentation; only pages with an entry in pageDocs.js get the button. */}
-      <HelpDrawer page={unitTab === 2 && meetingTab === 2 ? "meeting/agenda-columns" : null} />
+      <HelpDrawer
+        page={
+          unitTab === 2 && meetingTab === 2 ? "meeting/agenda-columns" : unitTab === 1 && formsTab === 1 ? "forms/pre-population" : null
+        }
+      />
 
       <AnimatePresence>
         {toast && (

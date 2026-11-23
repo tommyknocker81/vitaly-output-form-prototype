@@ -6,6 +6,110 @@
  */
 
 export const PAGE_DOCS = {
+  "forms/pre-population": {
+    title: "Report form pre-population",
+    path: "Care unit manager › Forms › Report form pre-population",
+    overview: [
+      "Care unit admins choose which request form fields pre-fill the report form. Source: requirement 2 – Request > Report field mapping configuration (VS-16812, VS-16814).",
+      "**When it fires:** once per referral, the first time the scribe opens the Decision draft after the referral enters In review, while the report has not been saved. Values keep updating until the MDT decision is saved.",
+      "**Why:** today the mapping is keyed by the request + report form pair and must be recreated by hand for every new form version. Moving it to the care unit keeps it across versions.",
+    ],
+    scope: {
+      in: "Viewing, adding, editing and removing mappings; type validation; flagging mappings whose field was removed after a form version change.",
+      out: "Mapping on answer-option level, defaults for new care units, the scribe's Decision draft screen itself.",
+    },
+    rules: [
+      ["From fields", "Only fields of the care unit's active request form questionnaire."],
+      ["To fields", "Only fields of the care unit's active report form questionnaire. A report field can be the target of one mapping only."],
+      ["Allowed types", "Text (string), Text area (text), Check-box (boolean), Date, Date time, Choice. Mapping only between the same type and subtype."],
+      ["Choice subtypes", "Only select and radio map. Checkboxes, slider and matrix choices, open choice, group and display fields are not supported."],
+      ["Type mismatch", "Shown on the row at configuration time; saving is prevented until fixed."],
+      ["No configuration", "Optional. Without mappings the report form opens blank."],
+      ["Removed field", "After a form version change, mappings whose from or to field no longer exists are flagged and skipped when pre-filling."],
+      ["Version review", "Pre-population is an affected item in the request and report form version review. The new version goes live only after all affected items are reviewed."],
+    ],
+    epics: [
+      {
+        title: "Epic 1 – View and configure mappings (VS-16812)",
+        stories: [
+          {
+            title: "1.1 Navigate to pre-population",
+            story: "As a care unit admin, I want to find report pre-population under Forms, so that all form settings sit together.",
+            ac: [
+              "**Given** I open Forms, **then** I see the sub-tabs Output documents and Report form pre-population.",
+              "**Given** pre-population needs review, **then** its sub-tab and the Forms tab show an amber dot.",
+            ],
+          },
+          {
+            title: "1.2 See the configured mappings",
+            story: "As a care unit admin, I want to see which request fields pre-fill which report fields.",
+            ac: [
+              "**Then** the card shows \"From <request form> → to <report form>\" and an explanation of when pre-filling happens.",
+              "**Then** each mapping is a row: request field with type tag → report field with type tag, under the headers \"From — request form\" and \"To — report form\".",
+              "**Then** the status reads \"Up to date\" and an Edit button is shown.",
+            ],
+          },
+          {
+            title: "1.3 No mappings configured",
+            story: "As an admin of a new care unit, I want a clear starting point.",
+            ac: [
+              "**Then** the card reads \"No mappings configured\" and \"The report form opens blank when first filled in.\"",
+              "**When** I click Add mapping, **then** edit mode opens with one empty mapping row.",
+            ],
+          },
+          {
+            title: "1.4 Add, change and remove mappings",
+            story: "As a care unit admin, I want to maintain the mappings myself.",
+            ac: [
+              "**When** I click Edit, **then** each mapping becomes two field pickers (request → report) with a remove button.",
+              "**Then** each picker lists the active form's fields with their type; unsupported types are listed but disabled.",
+              "**Then** a report field already used by another mapping is disabled with \"already mapped\".",
+              "**When** I click Add mapping, **then** an empty row is added at the end.",
+              "**When** I click ×, **then** the row is removed.",
+            ],
+          },
+          {
+            title: "1.5 Type validation",
+            story: "As a care unit admin, I want to be stopped from mapping incompatible fields.",
+            ac: [
+              "**Given** the two fields differ in type or choice subtype, **then** the row turns red with \"Type mismatch: <from type> → <to type>. Map fields of the same type.\"",
+              "**Then** Save mappings is disabled and the footer says how many mismatches to fix.",
+              "**Given** a row is incomplete, **then** saving is disabled with \"Complete or remove <n> unfinished mapping(s).\"",
+              "**When** I click Cancel, **then** all draft changes are discarded.",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Epic 2 – Review mappings after a form change (VS-16814)",
+        stories: [
+          {
+            title: "2.1 Pre-population in the version review",
+            story: "As a care unit admin, I want pre-population checked when a request or report form version changes.",
+            ac: [
+              "**Given** I change the request or report form version and it removes a mapped field, **then** the impact dialog lists \"Report form pre-population\" with the affected fields.",
+              "**When** I start the review, **then** the card shows \"Needs review\" and the banner \"One or more forms are changing. Please review.\" with the version changes.",
+              "**Then** the removed side of each affected mapping is red and struck through; its icon explains that the mapping is skipped when pre-filling.",
+            ],
+          },
+          {
+            title: "2.2 Confirm the review",
+            story: "As a care unit admin, I want to confirm so the new form version can go live.",
+            ac: [
+              "**When** I click \"Remove <n> mapping(s) and confirm\", **then** the affected mappings are deleted and the card shows the new form versions.",
+              "**Given** it was the last affected item, **then** the new form version becomes active.",
+              "**Then** all other mappings are carried forward to the new version unchanged.",
+            ],
+          },
+        ],
+      },
+    ],
+    openQuestions: [
+      "Should mapping on answer-option level (e.g. choice values) be included?",
+      "Should new care units get default mappings (e.g. proposed conclusion → conclusion)?",
+      "Can one request field pre-fill several report fields?",
+    ],
+  },
   "meeting/agenda-columns": {
     title: "Agenda columns",
     path: "Care unit manager › Meeting › Agenda columns",

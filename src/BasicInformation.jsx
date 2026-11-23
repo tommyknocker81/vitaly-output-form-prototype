@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { T } from "./tokens.js";
-import { SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, agendaImpact } from "./formVersions.js";
+import { SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, agendaImpact, prepopImpact } from "./formVersions.js";
 import editIcon from "./icons/edit.svg";
 import usersIcon from "./icons/users.svg";
 import infoIcon from "./icons/info.svg";
@@ -150,7 +150,7 @@ function MdtInfoCard({ info, onSave }) {
   );
 }
 
-function FormPicker({ source, state, outputForms, agenda, onPick, onCancel, onGoReview }) {
+function FormPicker({ source, state, outputForms, agenda, prepop, onPick, onCancel, onGoReview }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const { label, versions } = SOURCE_FORMS[source];
@@ -167,6 +167,7 @@ function FormPicker({ source, state, outputForms, agenda, onPick, onCancel, onGo
   const dependents = [
     ...outputForms.map((f) => ({ inReview: f.reviews.some((r) => r.source === source), done: f.builtOn[source] === state.pending })),
     ...(source === "request" ? [{ inReview: agenda.review?.source === source, done: agenda.builtOn === state.pending }] : []),
+    { inReview: prepop.reviews.some((r) => r.source === source), done: prepop.builtOn[source] === state.pending },
   ];
   const inReview = dependents.filter((d) => d.inReview);
   const totalAffected = state.pending ? dependents.filter((d) => d.inReview || d.done).length : 0;
@@ -256,13 +257,14 @@ const KIND = {
 };
 
 // Shown before a source form version change is started.
-function ImpactDialog({ change, sourceForms, outputForms, agenda, onConfirm, onClose }) {
+function ImpactDialog({ change, sourceForms, outputForms, agenda, prepop, onConfirm, onClose }) {
   const { source, target } = change;
   const diff = FORM_DIFFS[target];
   const from = sourceForms[source].active;
   const impacts = [
     ...outputForms.map((f) => ({ id: f.id, title: `${f.name} v${f.version}`, next: `v${bumpVersion(f.version)}`, items: impactOf(f.sections, diff) })),
     ...(source === "request" ? [{ id: "agenda", title: "Meeting agenda columns", next: null, items: agendaImpact(agenda.columns, diff) }] : []),
+    { id: "prepop", title: "Report form pre-population", next: null, items: prepopImpact(prepop.mappings, diff, source) },
   ];
   const affected = impacts.filter((i) => i.items.length);
   const fieldChanges = [
@@ -350,7 +352,7 @@ function ImpactDialog({ change, sourceForms, outputForms, agenda, onConfirm, onC
           </div>
 
           <ul className="text-[14px] leading-[1.5] flex flex-col gap-1 rounded-lg p-4" style={{ background: "rgba(0,128,163,0.05)", color: T.bodyText }}>
-            <li>• {from} stays active until every affected output form and the agenda columns are reviewed.</li>
+            <li>• {from} stays active until every affected item above is reviewed.</li>
             <li>• Cases already in progress keep {versionOf(from)} and their current output form versions.</li>
             <li>• New fields are added hidden; removed fields are dropped when each output form is published.</li>
           </ul>
@@ -365,7 +367,7 @@ function ImpactDialog({ change, sourceForms, outputForms, agenda, onConfirm, onC
   );
 }
 
-function FormsCard({ sourceForms, outputForms, agenda, onStartChange, onCancelChange, onGoReview }) {
+function FormsCard({ sourceForms, outputForms, agenda, prepop, onStartChange, onCancelChange, onGoReview }) {
   const [change, setChange] = useState(null);
   return (
     <Card title="Forms">
@@ -377,6 +379,7 @@ function FormsCard({ sourceForms, outputForms, agenda, onStartChange, onCancelCh
             state={sourceForms[src]}
             outputForms={outputForms}
             agenda={agenda}
+            prepop={prepop}
             onPick={(target) => setChange({ source: src, target })}
             onCancel={onCancelChange}
             onGoReview={onGoReview}
@@ -391,6 +394,7 @@ function FormsCard({ sourceForms, outputForms, agenda, onStartChange, onCancelCh
             sourceForms={sourceForms}
             outputForms={outputForms}
             agenda={agenda}
+            prepop={prepop}
             onClose={() => setChange(null)}
             onConfirm={() => { onStartChange(change.source, change.target); setChange(null); }}
           />
@@ -566,7 +570,7 @@ function ActivationCard({ active, setActive }) {
 
 /* -------------------------------------------------------------- page */
 
-export default function BasicInformation({ sourceForms, outputForms, agenda, onStartChange, onCancelChange, onGoReview }) {
+export default function BasicInformation({ sourceForms, outputForms, agenda, prepop, onStartChange, onCancelChange, onGoReview }) {
   const [info, setInfo] = useState(INITIAL_INFO);
   const [orgs, setOrgs] = useState(INITIAL_ORGS);
   const [mode, setMode] = useState("all");
@@ -583,6 +587,7 @@ export default function BasicInformation({ sourceForms, outputForms, agenda, onS
             sourceForms={sourceForms}
             outputForms={outputForms}
             agenda={agenda}
+            prepop={prepop}
             onStartChange={onStartChange}
             onCancelChange={onCancelChange}
             onGoReview={onGoReview}

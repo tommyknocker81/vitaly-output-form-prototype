@@ -347,7 +347,7 @@ function FieldPicker({ available, onAdd, full }) {
 }
 
 // Icon with an explanatory tooltip, shown on hover and keyboard focus.
-function InfoTip({ label, children }) {
+export function InfoTip({ label, children }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   return (
