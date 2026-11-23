@@ -37,7 +37,7 @@ export const PAGE_DOCS = {
             title: "1.1 Navigate to agenda columns",
             story: "As a care unit admin, I want to find the agenda column settings under the Meeting tab, so that meeting settings sit together.",
             ac: [
-              "**Given** I open a care unit, **then** the top tabs are Basic information, Output forms, Meeting and Members.",
+              "**Given** I open a care unit, **then** the top tabs are Basic information, Forms, Meeting and Members.",
               "**Given** I open Meeting, **then** the sub-tabs are Meeting dates, Video conferencing and Agenda columns, with Meeting dates selected.",
               "**Given** agenda columns need review, **then** the Agenda columns sub-tab shows an amber dot.",
             ],

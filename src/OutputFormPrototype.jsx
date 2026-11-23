@@ -254,7 +254,7 @@ function TopHeader() {
   );
 }
 
-const UNIT_TABS = ["Basic information", "Output forms", "Meeting", "Members"];
+const UNIT_TABS = ["Basic information", "Forms", "Meeting", "Members"];
 
 function UnitHeader({ activeTab, onChange }) {
   return (
@@ -1056,12 +1056,13 @@ function OutputFormEditor({ form, forms, onSelectForm, setSections, onPublish })
 /* ---------------------------------------------------------- deep links */
 
 // Every tab has its own link, e.g. #/meeting/agenda-columns or #/output-forms/gp-letter.
-const UNIT_SLUGS = ["basic-information", "output-forms", "meeting"];
+const UNIT_SLUGS = ["basic-information", "forms", "meeting"];
 const MEETING_SLUGS = ["meeting-dates", "video-conferencing", "agenda-columns"];
 
 function routeFromHash(hash = window.location.hash) {
   const [unit, sub] = hash.replace(/^#\/?/, "").split("/");
-  const unitTab = UNIT_SLUGS.indexOf(unit);
+  // "output-forms" was the earlier name of the Forms tab; old links keep working.
+  const unitTab = UNIT_SLUGS.indexOf(unit === "output-forms" ? "forms" : unit);
   if (unitTab < 0) return null;
   return {
     unitTab,
@@ -1071,7 +1072,7 @@ function routeFromHash(hash = window.location.hash) {
 }
 
 function hashFor(unitTab, meetingTab, formId) {
-  if (unitTab === 1) return `#/output-forms/${formId}`;
+  if (unitTab === 1) return `#/forms/${formId}`;
   if (unitTab === 2) return `#/meeting/${MEETING_SLUGS[meetingTab]}`;
   return `#/${UNIT_SLUGS[unitTab]}`;
 }
