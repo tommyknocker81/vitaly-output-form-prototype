@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, X, Plus, ArrowRight, AlertTriangle, AlertCircle } from "lucide-react";
+import { Pencil, X, Plus, ArrowRight, AlertTriangle, AlertCircle, ChevronDown, Check } from "lucide-react";
 import { T } from "./tokens.js";
 import { InfoTip } from "./MeetingSettings.jsx";
 import { MAP_TYPES, mapFieldByKey, mapFieldsFor, mappingIssue, versionOf, FORM_DIFFS, SOURCE_FORMS } from "./formVersions.js";
@@ -17,9 +17,10 @@ function Chip({ bg, fg, children }) {
   );
 }
 
-function TypeChip({ type }) {
+// White on the grey mapping rows; light grey inside the white dropdown.
+function TypeChip({ type, muted, onWhite }) {
   return (
-    <span className="text-[12px] px-2 py-0.5 rounded shrink-0 whitespace-nowrap" style={{ background: "#fff", color: "#444C54" }}>
+    <span className="text-[12px] px-2 py-0.5 rounded shrink-0 whitespace-nowrap" style={{ background: onWhite ? "#EEF1F3" : "#fff", color: muted ? "#6B747C" : "#444C54" }}>
       {MAP_TYPES[type].label}
     </span>
   );
@@ -81,36 +82,129 @@ function ColumnHeads() {
   );
 }
 
-// Native select with unsupported types listed but disabled.
+// Field dropdown in the design system's style: label + type tag, unsupported types
+// and already-mapped targets listed but disabled. Keyboard: Enter/Space/↓ open,
+// ↑/↓ move, Enter picks, Esc closes.
 function FieldSelect({ label, value, fields, used, onChange, invalid }) {
-  const ok = fields.filter((f) => !MAP_TYPES[f.type].unsupported);
-  const bad = fields.filter((f) => MAP_TYPES[f.type].unsupported);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(-1);
+  const ref = useRef(null);
+  const listId = useId();
+  const selected = value ? mapFieldByKey(value) : null;
+
+  const options = [
+    ...fields.filter((f) => !MAP_TYPES[f.type].unsupported).map((f) => {
+      const taken = used?.includes(f.key) && f.key !== value;
+      return { f, disabled: taken, note: taken ? "Already mapped" : null };
+    }),
+    ...fields.filter((f) => MAP_TYPES[f.type].unsupported).map((f) => ({ f, disabled: true, note: "Not supported", unsupported: true })),
+  ];
+  const enabledIdx = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e) => ref.current && !ref.current.contains(e.target) && setOpen(false);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
+  }, [open]);
+
+  const openList = () => {
+    setOpen(true);
+    setActive(Math.max(0, options.findIndex((o) => o.f.key === value)));
+  };
+  const pick = (o) => {
+    if (o.disabled) return;
+    onChange(o.f.key);
+    setOpen(false);
+  };
+  const move = (dir) => {
+    const pos = enabledIdx.indexOf(active);
+    const next = enabledIdx[Math.min(enabledIdx.length - 1, Math.max(0, (pos < 0 ? -1 : pos) + dir))];
+    if (next !== undefined) setActive(next);
+  };
+  const onKey = (e) => {
+    if (e.key === "Escape") return setOpen(false);
+    if (!open && ["Enter", " ", "ArrowDown"].includes(e.key)) return e.preventDefault(), openList();
+    if (!open) return;
+    if (e.key === "ArrowDown") return e.preventDefault(), move(1);
+    if (e.key === "ArrowUp") return e.preventDefault(), move(-1);
+    if (e.key === "Enter") return e.preventDefault(), options[active] && pick(options[active]);
+  };
+
   return (
-    <select
-      aria-label={label}
-      value={value ?? ""}
-      onChange={(e) => onChange(e.target.value || null)}
-      className="flex-1 min-w-0 h-10 px-2.5 rounded text-[15px] bg-white outline-none focus:ring-2"
-      style={{ border: `1px solid ${invalid ? T.danger : T.gray400}`, color: value ? T.bodyText : T.muted, "--tw-ring-color": "rgba(0,128,163,0.25)" }}
-    >
-      <option value="">Select a field…</option>
-      <optgroup label="Fields">
-        {ok.map((f) => (
-          <option key={f.key} value={f.key} disabled={used?.includes(f.key) && f.key !== value}>
-            {f.label} ({MAP_TYPES[f.type].label}){used?.includes(f.key) && f.key !== value ? " – already mapped" : ""}
-          </option>
-        ))}
-      </optgroup>
-      {bad.length > 0 && (
-        <optgroup label="Not supported">
-          {bad.map((f) => (
-            <option key={f.key} value={f.key} disabled>
-              {f.label} ({MAP_TYPES[f.type].label})
-            </option>
-          ))}
-        </optgroup>
-      )}
-    </select>
+    <div ref={ref} className="relative flex-1 min-w-0">
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listId}
+        onClick={() => (open ? setOpen(false) : openList())}
+        onKeyDown={onKey}
+        className="w-full h-10 flex items-center gap-2 pl-3 pr-2.5 rounded bg-white text-left focus:outline-none focus-visible:ring-2"
+        style={{
+          border: `1px solid ${invalid ? T.danger : open ? T.primary : T.gray400}`,
+          "--tw-ring-color": "rgba(0,128,163,0.25)",
+        }}
+      >
+        <span className="flex-1 min-w-0 truncate text-[15px]" style={{ color: selected ? T.bodyText : T.muted, fontWeight: selected ? 600 : 400 }}>
+          {selected ? selected.label : "Select a field…"}
+        </span>
+        {selected && <TypeChip type={selected.type} onWhite />}
+        <motion.span initial={false} animate={{ rotate: open ? 180 : 0 }} className="flex shrink-0">
+          <ChevronDown size={18} color={T.primary} />
+        </motion.span>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.ul
+            id={listId}
+            role="listbox"
+            aria-label={label}
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute left-0 right-0 top-[calc(100%+4px)] z-30 bg-white rounded py-1 max-h-[280px] overflow-y-auto"
+            style={{ border: `1px solid ${T.gray400}`, boxShadow: "0 6px 18px rgba(0,37,50,.12)" }}
+          >
+            {options.map((o, i) => {
+              const isSel = o.f.key === value;
+              return (
+                <li key={o.f.key}>
+                  {o.unsupported && !options[i - 1]?.unsupported && (
+                    <div className="px-3 pt-2 pb-1 mt-1 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: T.muted, borderTop: "1px solid #EEF1F3" }}>
+                      Not supported
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    role="option"
+                    aria-selected={isSel}
+                    aria-disabled={o.disabled}
+                    tabIndex={-1}
+                    onMouseEnter={() => !o.disabled && setActive(i)}
+                    onClick={() => pick(o)}
+                    className="w-full min-h-10 flex items-center gap-2.5 px-3 text-left text-[15px]"
+                    style={{
+                      background: i === active && !o.disabled ? "#F2FAFC" : "transparent",
+                      color: o.disabled ? "#6B747C" : T.bodyText,
+                      cursor: o.disabled ? "not-allowed" : "pointer",
+                      fontWeight: isSel ? 600 : 400,
+                    }}
+                  >
+                    <span className="flex-1 min-w-0 truncate">{o.f.label}</span>
+                    {o.note && !o.unsupported && <span className="text-[12px]">{o.note}</span>}
+                    <TypeChip type={o.f.type} muted={o.disabled} onWhite />
+                    {isSel && <Check size={16} color={T.primary} className="shrink-0" />}
+                  </button>
+                </li>
+              );
+            })}
+          </motion.ul>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -223,10 +317,11 @@ export default function Prepopulation({ prepop, setPrepop, onConfirmReview }) {
                     <motion.li
                       key={m.id}
                       layout="position"
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="overflow-hidden"
+                      // Fade only: clipping the row would cut off an open field dropdown.
+                      initial={{ opacity: 0, y: -4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="relative focus-within:z-20"
                     >
                       <div className="flex items-center gap-3 p-2 rounded" style={bad ? rowGone : rowOk}>
                         <FieldSelect
