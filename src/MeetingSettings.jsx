@@ -21,7 +21,7 @@ function Chip({ bg, fg, children }) {
 }
 
 function TypeChip({ children }) {
-  return <span className="text-[12px] px-2 py-0.5 rounded shrink-0" style={{ background: "#EEF1F3", color: "#444C54" }}>{children}</span>;
+  return <span className="text-[12px] px-2 py-0.5 rounded shrink-0" style={{ background: "#fff", color: "#444C54" }}>{children}</span>;
 }
 
 function Btn({ variant = "primary", children, className = "", ...props }) {
@@ -261,7 +261,7 @@ function EditRow({ k, n, isNew, onRemove }) {
       style={
         f.retired
           ? { border: "1px solid #F8E7E6", background: "#F8E7E6", boxShadow: `inset 3px 0 0 ${T.danger}` }
-          : { border: `1px solid ${T.border}`, background: "#fff" }
+          : { border: "1px solid transparent", background: T.light }
       }
     >
       <button
@@ -276,7 +276,7 @@ function EditRow({ k, n, isNew, onRemove }) {
       <span className="flex-1 font-semibold text-[15px]" style={f.retired ? { textDecoration: "line-through", color: T.gray600 } : undefined}>{f.label}</span>
       {isNew && <Chip bg="#E6F2F6" fg="#00566E">New</Chip>}
       <TypeChip>{f.type}</TypeChip>
-      <button type="button" aria-label={`Remove ${f.label}`} onClick={() => onRemove(k)} className="w-9 h-9 flex items-center justify-center rounded hover:bg-[#F7F8FA]" style={{ color: T.gray600 }}>
+      <button type="button" aria-label={`Remove ${f.label}`} onClick={() => onRemove(k)} className="w-9 h-9 flex items-center justify-center rounded hover:bg-white" style={{ color: T.gray600 }}>
         <X size={16} />
       </button>
     </Reorder.Item>
@@ -540,7 +540,7 @@ function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
                           style={
                             gone
                               ? { border: "1px solid #F8E7E6", background: "#F8E7E6", boxShadow: `inset 3px 0 0 ${T.danger}` }
-                              : { border: `1px solid ${T.border}`, background: "#fff" }
+                              : { border: "1px solid transparent", background: T.light }
                           }
                         >
                           {gone ? (
