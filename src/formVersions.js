@@ -48,6 +48,7 @@ export const FORM_DIFFS = {
       { section: "next_steps", field: { key: "next_steps.follow_up_mdt", label: "Follow-up MDT", type: "item", value: "Re-discuss at post-op MDT – 24/06/2025" } },
     ],
     removed: ["mdt.fitness", "rep.clinical_study"],
+    pastMdtAdded: [{ key: "rep.follow_up_date", label: "Follow-up date", type: "Date" }],
     changed: {
       "mdt.plan": { label: "Treatment plan", lead: "Treatment plan:" },
     },
@@ -215,4 +216,36 @@ export function prepopImpact(mappings, diff, source) {
   return mappings
     .filter((m) => diff.removed.includes(m[side]))
     .map((m) => ({ kind: "removed", key: m[side], label: mapFieldByKey(m[side]).label }));
+}
+
+/* ------------------------------------------------- past MDTs fields */
+
+// Report form fields a re-discussed case can show from its previous MDT report.
+// Requirement 3: no limit on the number of fields and every data type is allowed.
+export const PAST_MDT_FIELDS = [
+  ...REPORT_MAP_FIELDS.map((f) => ({ ...f, type: MAP_TYPES[f.type].label })),
+  { key: "rep.reason_for_referral", label: "Reason for referral", type: "Text" },
+  { key: "rep.treatment_phase", label: "Treatment phase", type: "Choice · select" },
+  { key: "rep.attachments", label: "Attachments", type: "Attachment" },
+];
+
+export const pastMdtFieldByKey = (key) =>
+  PAST_MDT_FIELDS.find((f) => f.key === key) ??
+  Object.values(FORM_DIFFS).flatMap((d) => d.pastMdtAdded ?? []).find((f) => f.key === key);
+
+// Fields of a report form version available for Past MDTs (removed ones drop out, new ones are flagged).
+export function pastMdtFieldsFor(version) {
+  const diff = FORM_DIFFS[version];
+  if (!diff) return PAST_MDT_FIELDS;
+  return [
+    ...PAST_MDT_FIELDS.filter((f) => !diff.removed.includes(f.key)),
+    ...(diff.pastMdtAdded ?? []).map((f) => ({ ...f, isNew: true })),
+  ];
+}
+
+// Configured Past MDTs fields a report form version change would remove.
+export function pastMdtImpact(fields, diff) {
+  return fields
+    .filter((k) => diff.removed.includes(k))
+    .map((k) => ({ kind: "removed", key: k, label: pastMdtFieldByKey(k)?.label ?? k }));
 }

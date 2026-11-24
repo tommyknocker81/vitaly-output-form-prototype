@@ -26,4 +26,5 @@ Each tab has its own link (the address bar follows as you click; Back/Forward wo
 | Forms › Report form pre-population | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/forms/pre-population |
 | Meeting › Meeting dates | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/meeting/meeting-dates |
 | Meeting › Video conferencing | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/meeting/video-conferencing |
-| Meeting › Agenda columns | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/meeting/agenda-columns |
+| Other settings › Agenda columns | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/other-settings/agenda-columns |
+| Other settings › Past MDTs fields | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/other-settings/past-mdts-fields |

@@ -5,10 +5,11 @@ import { ChevronDown, ChevronLeft, Star, Bell, User, RotateCcw, AlertTriangle, C
 import { T } from "./tokens.js";
 import BasicInformation from "./BasicInformation.jsx";
 import MeetingSettings from "./MeetingSettings.jsx";
+import OtherSettings from "./OtherSettings.jsx";
 import HelpDrawer from "./HelpDrawer.jsx";
 import Prepopulation from "./Prepopulation.jsx";
 import GripIcon from "./GripIcon.jsx";
-import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact, prepopImpact } from "./formVersions.js";
+import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact, prepopImpact, pastMdtImpact } from "./formVersions.js";
 
 /*
  * Form data model. Every section is a card on the left and a block in the
@@ -255,7 +256,7 @@ function TopHeader() {
   );
 }
 
-const UNIT_TABS = ["Basic information", "Forms", "Meeting", "Members"];
+const UNIT_TABS = ["Basic information", "Forms", "Meeting", "Other settings", "Members"];
 
 function UnitHeader({ activeTab, onChange, flags = [] }) {
   return (
@@ -279,7 +280,7 @@ function UnitHeader({ activeTab, onChange, flags = [] }) {
       <nav className="flex items-stretch pr-8">
         {UNIT_TABS.map((t, i) => {
           const active = i === activeTab;
-          const enabled = i <= 2; // Members is not mocked
+          const enabled = i <= 3; // Members is not mocked
           return (
             <button
               key={t}
@@ -1162,12 +1163,15 @@ function FormsPage({ tab, setTab, needsReview, children }) {
 
 /* ---------------------------------------------------------- deep links */
 
-// Every tab has its own link, e.g. #/meeting/agenda-columns, #/forms/gp-letter/emr or #/forms/pre-population.
-const UNIT_SLUGS = ["basic-information", "forms", "meeting"];
-const MEETING_SLUGS = ["meeting-dates", "video-conferencing", "agenda-columns"];
+// Every tab has its own link, e.g. #/other-settings/past-mdts-fields, #/forms/gp-letter/emr or #/forms/pre-population.
+const UNIT_SLUGS = ["basic-information", "forms", "meeting", "other-settings"];
+const MEETING_SLUGS = ["meeting-dates", "video-conferencing"];
+const OTHER_SLUGS = ["agenda-columns", "past-mdts-fields"];
 
 function routeFromHash(hash = window.location.hash) {
-  const [unit, sub] = hash.replace(/^#\/?/, "").split("/");
+  let [unit, sub] = hash.replace(/^#\/?/, "").split("/");
+  // Agenda columns used to live under Meeting; old links keep working.
+  if (unit === "meeting" && sub === "agenda-columns") unit = "other-settings";
   // "output-forms" was the earlier name of the Forms tab; old links keep working.
   const unitTab = UNIT_SLUGS.indexOf(unit === "output-forms" ? "forms" : unit);
   if (unitTab < 0) return null;
@@ -1175,13 +1179,15 @@ function routeFromHash(hash = window.location.hash) {
   return {
     unitTab,
     meetingTab: unitTab === 2 ? Math.max(0, MEETING_SLUGS.indexOf(sub)) : undefined,
+    otherTab: unitTab === 3 ? Math.max(0, OTHER_SLUGS.indexOf(sub)) : undefined,
     formsTab: unitTab === 1 ? (sub === "pre-population" ? 1 : 0) : undefined,
     formId: unitTab === 1 && INITIAL_OUTPUT_FORMS.some((f) => f.id === sub) ? sub : undefined,
     channel: unitTab === 1 && sub !== "pre-population" ? (channel === "emr" ? "emr" : "pdf") : undefined,
   };
 }
 
-function hashFor(unitTab, meetingTab, formId, formsTab, channel) {
+function hashFor(unitTab, meetingTab, formId, formsTab, channel, otherTab) {
+  if (unitTab === 3) return `#/other-settings/${OTHER_SLUGS[otherTab]}`;
   if (unitTab === 1) return formsTab === 1 ? "#/forms/pre-population" : `#/forms/${formId}${channel === "emr" ? "/emr" : ""}`;
   if (unitTab === 2) return `#/meeting/${MEETING_SLUGS[meetingTab]}`;
   return `#/${UNIT_SLUGS[unitTab]}`;
@@ -1198,6 +1204,7 @@ export default function OutputFormPrototype() {
   });
   const [toast, setToast] = useState(null);
   const [meetingTab, setMeetingTab] = useState(initialRoute?.meetingTab ?? 0);
+  const [otherTab, setOtherTab] = useState(initialRoute?.otherTab ?? 0);
   const [formsTab, setFormsTab] = useState(initialRoute?.formsTab ?? 0);
   const [channel, setChannel] = useState(initialRoute?.channel ?? "pdf");
   // Report pre-population maps request fields to report fields, so both forms' reviews can touch it.
@@ -1210,12 +1217,12 @@ export default function OutputFormPrototype() {
 
   // Keep the address bar in step with the open tab (a history entry per change, so Back works)…
   useEffect(() => {
-    const h = hashFor(unitTab, meetingTab, activeId, formsTab, channel);
+    const h = hashFor(unitTab, meetingTab, activeId, formsTab, channel, otherTab);
     if (window.location.hash !== h) {
       if (window.location.hash) window.history.pushState(null, "", h);
       else window.history.replaceState(null, "", h);
     }
-  }, [unitTab, meetingTab, activeId, formsTab, channel]);
+  }, [unitTab, meetingTab, activeId, formsTab, channel, otherTab]);
 
   // …and follow the address bar when it changes (Back/Forward, a pasted link).
   useEffect(() => {
@@ -1224,6 +1231,7 @@ export default function OutputFormPrototype() {
       if (!r) return;
       setUnitTab(r.unitTab);
       if (r.meetingTab !== undefined) setMeetingTab(r.meetingTab);
+      if (r.otherTab !== undefined) setOtherTab(r.otherTab);
       if (r.formsTab !== undefined) setFormsTab(r.formsTab);
       if (r.formId) setActiveId(r.formId);
       if (r.channel) setChannel(r.channel);
@@ -1242,11 +1250,19 @@ export default function OutputFormPrototype() {
     review: null,
   });
 
+  // Past MDTs fields read report-form fields, so they take part in report form reviews.
+  const [pastMdt, setPastMdt] = useState({
+    fields: ["rep.conclusion", "rep.policy", "rep.clinical_study"],
+    builtOn: INITIAL_BUILT_ON.report,
+    review: null,
+  });
+
   // A pending source version goes live once nothing that depends on it is still in review.
-  const stillInReview = (source, forms, agendaState, prepopState = prepop) =>
+  const stillInReview = (source, forms, agendaState, prepopState = prepop, pastState = pastMdt) =>
     forms.some((f) => f.reviews.some((r) => r.source === source)) ||
     agendaState.review?.source === source ||
-    prepopState.reviews.some((r) => r.source === source);
+    prepopState.reviews.some((r) => r.source === source) ||
+    pastState.review?.source === source;
 
   useEffect(() => {
     if (!toast) return;
@@ -1297,6 +1313,10 @@ export default function OutputFormPrototype() {
       affected++;
       setAgenda((a) => ({ ...a, review: { source, from, to: target } }));
     }
+    if (source === "report" && pastMdtImpact(pastMdt.fields, diff).length) {
+      affected++;
+      setPastMdt((p) => ({ ...p, review: { source, from, to: target } }));
+    }
     setOutputForms(next);
     if (affected) setSourceForms((sf) => ({ ...sf, [source]: { ...sf[source], pending: target } }));
     else activate(source, target);
@@ -1313,6 +1333,7 @@ export default function OutputFormPrototype() {
       })
     );
     if (agenda.review?.source === source) setAgenda((a) => ({ ...a, review: null }));
+    if (pastMdt.review?.source === source) setPastMdt((p) => ({ ...p, review: null }));
     setPrepop((p) => ({ ...p, reviews: p.reviews.filter((r) => r.source !== source) }));
     setSourceForms((sf) => ({ ...sf, [source]: { ...sf[source], pending: null } }));
     setToast("Form change cancelled. Everything is back as it was.");
@@ -1337,7 +1358,7 @@ export default function OutputFormPrototype() {
       }
     }
     if (!activated) {
-      const left = next.filter((f) => f.reviews.length).length + (agenda.review ? 1 : 0) + (prepop.reviews.length ? 1 : 0);
+      const left = next.filter((f) => f.reviews.length).length + (agenda.review ? 1 : 0) + (prepop.reviews.length ? 1 : 0) + (pastMdt.review ? 1 : 0);
       setToast(`${activeForm.name} v${bumpVersion(activeForm.version)} published. ${left} item${left > 1 ? "s" : ""} still to review.`);
     }
   };
@@ -1349,11 +1370,14 @@ export default function OutputFormPrototype() {
       setUnitTab(1);
       setFormsTab(0);
     } else if (agenda.review?.source === source) {
-      setMeetingTab(2);
-      setUnitTab(2);
+      setOtherTab(0);
+      setUnitTab(3);
     } else if (prepop.reviews.some((r) => r.source === source)) {
       setFormsTab(1);
       setUnitTab(1);
+    } else if (pastMdt.review?.source === source) {
+      setOtherTab(1);
+      setUnitTab(3);
     }
     window.scrollTo({ top: 0 });
   };
@@ -1385,6 +1409,15 @@ export default function OutputFormPrototype() {
     else setToast("Agenda columns confirmed. Other affected items are still to review.");
   };
 
+  const confirmPastMdtReview = () => {
+    const r = pastMdt.review;
+    const removed = FORM_DIFFS[r.to].removed;
+    const next = { fields: pastMdt.fields.filter((k) => !removed.includes(k)), builtOn: r.to, review: null };
+    setPastMdt(next);
+    if (!stillInReview(r.source, outputForms, agenda, prepop, next)) activate(r.source, r.to);
+    else setToast("Past MDTs fields confirmed. Other affected items are still to review.");
+  };
+
   return (
     <div className="min-h-screen flex" style={{ fontFamily: T.fontFamily, color: T.bodyText, background: T.light }}>
       <SideNav />
@@ -1393,7 +1426,7 @@ export default function OutputFormPrototype() {
         <UnitHeader
           activeTab={unitTab}
           onChange={setUnitTab}
-          flags={[false, outputForms.some((f) => f.reviews.length) || prepop.reviews.length > 0, !!agenda.review]}
+          flags={[false, outputForms.some((f) => f.reviews.length) || prepop.reviews.length > 0, false, !!agenda.review || !!pastMdt.review]}
         />
 
         {/* Both pages stay mounted so their state survives tab switches. */}
@@ -1403,6 +1436,7 @@ export default function OutputFormPrototype() {
             outputForms={outputForms}
             agenda={agenda}
             prepop={prepop}
+            pastMdt={pastMdt}
             onStartChange={startChange}
             onCancelChange={cancelChange}
             onGoReview={goReview}
@@ -1431,13 +1465,19 @@ export default function OutputFormPrototype() {
           </FormsPage>
         </div>
         <div className={unitTab === 2 ? "" : "hidden"}>
-          <MeetingSettings
-            tab={meetingTab}
-            setTab={setMeetingTab}
+          <MeetingSettings tab={meetingTab} setTab={setMeetingTab} />
+        </div>
+        <div className={unitTab === 3 ? "" : "hidden"}>
+          <OtherSettings
+            tab={otherTab}
+            setTab={setOtherTab}
             agenda={agenda}
             setAgenda={setAgenda}
             requestForm={sourceForms.request.active}
             onConfirmAgendaReview={confirmAgendaReview}
+            pastMdt={pastMdt}
+            setPastMdt={setPastMdt}
+            onConfirmPastMdtReview={confirmPastMdtReview}
           />
         </div>
       </div>
@@ -1445,7 +1485,11 @@ export default function OutputFormPrototype() {
       {/* Page documentation; only pages with an entry in pageDocs.js get the button. */}
       <HelpDrawer
         page={
-          unitTab === 2 && meetingTab === 2 ? "meeting/agenda-columns" : unitTab === 1 && formsTab === 1 ? "forms/pre-population" : null
+          unitTab === 3
+            ? ["other-settings/agenda-columns", "other-settings/past-mdts-fields"][otherTab]
+            : unitTab === 1 && formsTab === 1
+              ? "forms/pre-population"
+              : null
         }
       />
 

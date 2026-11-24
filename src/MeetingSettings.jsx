@@ -8,11 +8,12 @@ import { MAX_AGENDA_COLUMNS, columnFieldsFor, fieldByKey, versionOf, FORM_DIFFS 
 // Care unit › Meeting (agenda columns from the "Care unit – Meeting agenda columns" canvas,
 // styled after the Vitaly MDT meeting Patient list in Figma).
 
-export const MEETING_TABS = ["Meeting dates", "Video conferencing", "Agenda columns"];
+// Agenda columns moved to Care unit › Other settings (see OtherSettings.jsx).
+export const MEETING_TABS = ["Meeting dates", "Video conferencing"];
 
-const AMBER = { bg: "#FFF8EC", border: "#FFB853", icon: "#C77700", chipBg: "#FFF3E0", chipFg: "#9A5B00" };
+export const AMBER = { bg: "#FFF8EC", border: "#FFB853", icon: "#C77700", chipBg: "#FFF3E0", chipFg: "#9A5B00" };
 
-function Chip({ bg, fg, children }) {
+export function Chip({ bg, fg, children }) {
   return (
     <span className="inline-flex items-center px-2 rounded text-[11px] leading-[20px] font-bold uppercase tracking-[0.06em] shrink-0" style={{ background: bg, color: fg }}>
       {children}
@@ -20,11 +21,11 @@ function Chip({ bg, fg, children }) {
   );
 }
 
-function TypeChip({ children }) {
+export function TypeChip({ children }) {
   return <span className="text-[12px] px-2 py-0.5 rounded shrink-0" style={{ background: "#fff", color: "#444C54" }}>{children}</span>;
 }
 
-function Btn({ variant = "primary", children, className = "", ...props }) {
+export function Btn({ variant = "primary", children, className = "", ...props }) {
   const styles = {
     primary: { background: T.primary, border: `1px solid ${T.primary}`, color: "#fff" },
     outline: { background: "#fff", border: `1px solid ${T.primary}`, color: T.primary },
@@ -248,9 +249,9 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
 
 /* ------------------------------------------------------ columns card */
 
-function EditRow({ k, n, isNew, onRemove }) {
+export function EditRow({ k, n, isNew, onRemove, field }) {
   const controls = useDragControls();
-  const f = fieldByKey(k);
+  const f = field ?? fieldByKey(k);
   return (
     <Reorder.Item
       value={k}
@@ -283,7 +284,7 @@ function EditRow({ k, n, isNew, onRemove }) {
   );
 }
 
-function FieldPicker({ available, onAdd, full }) {
+export function FieldPicker({ available, onAdd, full, label = "Request form fields" }) {
   const [q, setQ] = useState("");
   const list = available.filter((f) => f.label.toLowerCase().includes(q.toLowerCase()));
   const ok = list.filter((f) => !f.unsupported);
@@ -297,7 +298,7 @@ function FieldPicker({ available, onAdd, full }) {
       style={{ border: `1px solid ${T.gray400}`, boxShadow: "0 6px 18px rgba(0,37,50,.12)" }}
     >
       <div className="p-2.5" style={{ borderBottom: "1px solid #EEF1F3" }}>
-        <label htmlFor="field-search" className="block text-[12px] mb-1" style={{ color: T.muted }}>Request form fields</label>
+        <label htmlFor="field-search" className="block text-[12px] mb-1" style={{ color: T.muted }}>{label}</label>
         <div className="relative">
           <Search size={15} className="absolute left-2.5 top-1/2 -translate-y-1/2" color={T.muted} />
           <input
@@ -407,7 +408,7 @@ function Progress({ used, label }) {
   );
 }
 
-function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
+export function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(agenda.columns);
   const [picker, setPicker] = useState(false);
@@ -654,7 +655,7 @@ function Placeholder({ icon: Icon, title, text }) {
 
 /* ------------------------------------------------------------------ page */
 
-export default function MeetingSettings({ tab, setTab, agenda, setAgenda, requestForm, onConfirmAgendaReview }) {
+export default function MeetingSettings({ tab, setTab }) {
   return (
     <main className="px-8 pt-6 pb-10">
       <h2 className="text-[22px] font-semibold leading-[1.2]">Meeting</h2>
@@ -668,7 +669,6 @@ export default function MeetingSettings({ tab, setTab, agenda, setAgenda, reques
             style={{ fontWeight: tab === i ? 600 : 400, borderBottom: tab === i ? `2px solid ${T.primary}` : "2px solid transparent" }}
           >
             {t}
-            {i === 2 && agenda.review && <span className="w-2 h-2 rounded-full" style={{ background: AMBER.border }} aria-label="Needs review" />}
           </button>
         ))}
       </div>
@@ -678,9 +678,6 @@ export default function MeetingSettings({ tab, setTab, agenda, setAgenda, reques
         )}
         {tab === 1 && (
           <Placeholder icon={Video} title="Video conferencing" text="The video conferencing provider and meeting link settings for this care unit will be configured here." />
-        )}
-        {tab === 2 && (
-          <AgendaColumns agenda={agenda} setAgenda={setAgenda} requestForm={requestForm} onConfirmReview={onConfirmAgendaReview} />
         )}
       </div>
     </main>

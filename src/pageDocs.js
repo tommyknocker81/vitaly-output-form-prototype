@@ -110,9 +110,9 @@ export const PAGE_DOCS = {
       "Can one request field pre-fill several report fields?",
     ],
   },
-  "meeting/agenda-columns": {
+  "other-settings/agenda-columns": {
     title: "Agenda columns",
-    path: "Care unit manager › Meeting › Agenda columns",
+    path: "Care unit manager › Other settings › Agenda columns",
     fullDoc: "https://claude.ai/artifact/1eFEFkuYPFyh3f9UQF4XX5",
     overview: [
       "Care unit admins choose up to 9 request-form fields to show as extra columns on the MDT meeting agenda, after the fixed system columns.",
@@ -121,7 +121,7 @@ export const PAGE_DOCS = {
     ],
     scope: {
       in: "Viewing, adding, removing and reordering agenda columns; the agenda preview; fields removed from the request form; the request form version review.",
-      out: "Meeting dates and Video conferencing (placeholders), the meeting agenda page itself, column widths, sorting and filtering on the agenda.",
+      out: "Past MDTs fields (own page), the meeting agenda page itself, column widths, sorting and filtering on the agenda.",
     },
     rules: [
       ["System columns", "9 fixed columns, always first, not configurable: #, Patient, Discussion type, Organisation, Status, Modified, Publishing, Treating clinician, Referrer."],
@@ -139,11 +139,11 @@ export const PAGE_DOCS = {
         stories: [
           {
             title: "1.1 Navigate to agenda columns",
-            story: "As a care unit admin, I want to find the agenda column settings under the Meeting tab, so that meeting settings sit together.",
+            story: "As a care unit admin, I want to find the agenda column settings under Other settings, next to the other form-driven display settings.",
             ac: [
-              "**Given** I open a care unit, **then** the top tabs are Basic information, Forms, Meeting and Members.",
-              "**Given** I open Meeting, **then** the sub-tabs are Meeting dates, Video conferencing and Agenda columns, with Meeting dates selected.",
-              "**Given** agenda columns need review, **then** the Agenda columns sub-tab shows an amber dot.",
+              "**Given** I open a care unit, **then** the top tabs are Basic information, Forms, Meeting, Other settings and Members.",
+              "**Given** I open Other settings, **then** the sub-tabs are Agenda columns and Past MDTs fields, with Agenda columns selected.",
+              "**Given** agenda columns need review, **then** the Agenda columns sub-tab and the Other settings tab show an amber dot.",
             ],
           },
           {
@@ -316,6 +316,109 @@ export const PAGE_DOCS = {
       "Is a change logged in an audit trail (who, when, what)?",
       "When a removed-field column is hidden, do clinicians see any hint?",
       "Should report form fields also be eligible as columns?",
+    ],
+  },
+
+  "other-settings/past-mdts-fields": {
+    title: "Past MDTs fields",
+    path: "Care unit manager › Other settings › Past MDTs fields",
+    overview: [
+      "Care unit admins choose which report form fields a clinician sees for each previous MDT report when a patient is re-discussed (Referral › Historical MDTs). Source: requirement 3 – Past MDTs fields configuration (VS-16817, VS-16818).",
+      "**When it shows:** only for referrals with the REDISCUSSED tag, i.e. the patient was referred to this or another MDT before. Each previous report is an accordion item with title and date; opening it shows the configured fields, stacked in the configured order.",
+      "**Why:** today the configuration is keyed by the versioned report questionnaire, so every new report form version needs a new entry by hand. Moving it to the care unit keeps it across versions.",
+    ],
+    scope: {
+      in: "Viewing, adding, removing and reordering fields; the Historical MDTs preview; fields removed by a report form version change; the report form version review.",
+      out: "The Consultation material and My notes tabs, the referral screen itself, per-answer-option configuration.",
+    },
+    rules: [
+      ["Source of fields", "Only fields of the care unit's active report form questionnaire (not the request form)."],
+      ["Number of fields", "No limit. Fields are stacked one below another."],
+      ["Data types", "All data types can be shown; monitor behaviour and user feedback."],
+      ["Order", "The configured order is the order in the accordion. Reorder with drag and drop."],
+      ["Default", "New care units start with Conclusion and Policy. The admin can remove them if the report form doesn't have them."],
+      ["No configuration", "Optional. Without fields, a previous report still appears with title and date, but shows no fields."],
+      ["Older reports", "Reports answered on an older report form version keep the fields configured for that version. Edits apply to the current version only."],
+      ["Removed field", "After a report form version change, fields no longer in the new version are flagged and stay until the admin removes them. Only valid fields are shown."],
+      ["Version review", "Past MDTs fields are an affected item in the report form version review. The new version goes live only after all affected items are reviewed."],
+    ],
+    epics: [
+      {
+        title: "Epic 1 – Configure Past MDTs fields (VS-16817)",
+        stories: [
+          {
+            title: "1.1 Navigate to Past MDTs fields",
+            story: "As a care unit admin, I want to find the Past MDTs fields under Other settings.",
+            ac: [
+              "**Given** I open Other settings, **then** the sub-tabs are Agenda columns and Past MDTs fields.",
+              "**Then** the page has its own link: #/other-settings/past-mdts-fields.",
+            ],
+          },
+          {
+            title: "1.2 See the configured fields",
+            story: "As a care unit admin, I want to see which fields clinicians get from previous reports.",
+            ac: [
+              "**Then** the card shows \"Past MDTs fields\", a status tag (Up to date, Needs review, Not set up), the source form version and a numbered list with type tags.",
+              "**Then** the count reads \"<n> fields in use\".",
+            ],
+          },
+          {
+            title: "1.3 Edit fields",
+            story: "As a care unit admin, I want to add, remove and reorder fields.",
+            ac: [
+              "**When** I click Edit, **then** the card enters edit mode with drag handles, × per row and an \"Add field\" button.",
+              "**When** I click Add field, **then** a searchable list of report form fields opens; fields already selected are not offered.",
+              "**Then** new fields get a \"New\" tag until saved; Cancel discards all changes; Save fields applies them.",
+            ],
+          },
+          {
+            title: "1.4 Preview",
+            story: "As a care unit admin, I want to see what clinicians will see.",
+            ac: [
+              "**Then** the preview shows Historical MDTs with sample previous reports; one is open by default and each opens and closes on click.",
+              "**Then** the open report lists the configured fields (label above value) in order; it follows edits live, newly added fields are highlighted.",
+              "**Then** a report answered on an earlier form version keeps its own fields and says so.",
+            ],
+          },
+          {
+            title: "1.5 No fields configured",
+            story: "As a care unit admin of a new care unit, I want a clear starting point.",
+            ac: [
+              "**Then** the card shows \"Not set up\" and \"No fields configured\" with a \"Configure fields\" button that opens edit mode with the field list open.",
+              "**Then** reports in the preview show only their title and date.",
+            ],
+          },
+        ],
+      },
+      {
+        title: "Epic 2 – Review after a report form change (VS-16818)",
+        stories: [
+          {
+            title: "2.1 Past MDTs fields in the version review",
+            story: "As a care unit admin, I want removed fields flagged when the report form version changes.",
+            ac: [
+              "**Given** I change the report form version, **then** the impact dialog lists \"Past MDTs fields\" with the removed fields, or \"Not affected\".",
+              "**Then** the card shows \"Needs review\", an amber notice and removed rows in red with a tooltip; Other settings and the sub-tab show an amber dot.",
+              "**Then** removed fields disappear from the preview.",
+            ],
+          },
+          {
+            title: "2.2 Confirm the review",
+            story: "As a care unit admin, I want to confirm so the new version can go live.",
+            ac: [
+              "**When** I click \"Remove <n> field(s) and confirm\", **then** they are deleted and the card shows the new version.",
+              "**Given** it was the last affected item, **then** the new report form version becomes active; otherwise a toast says other items remain.",
+              "**Then** reports already written on the old version keep their fields.",
+            ],
+          },
+        ],
+      },
+    ],
+    openQuestions: [
+      "Should very long values (Text area) be truncated in the accordion?",
+      "Is the Conclusion + Policy default added at care unit creation, or when the report form is first selected?",
+      "Should Past MDTs fields support answer-option level filtering?",
+      "Are changes logged in an audit trail?",
     ],
   },
 };
