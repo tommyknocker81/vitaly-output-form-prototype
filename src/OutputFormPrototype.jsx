@@ -1247,7 +1247,11 @@ function initialState(flow) {
     // Starts empty: the admin sets up the first mappings from the empty state.
     prepop: { mappings: [], builtOn: { ...INITIAL_BUILT_ON }, reviews: [] },
     agenda: {
-      columns: ["case.organ_type", "case.referral_source", "case.appointment_type", "case.prepared_by", "case.surgery_date"],
+      // Referral source is no longer on the request form: only the negative flow keeps it.
+      columns:
+        flow === "negative"
+          ? ["case.organ_type", "case.referral_source", "case.appointment_type", "case.prepared_by", "case.surgery_date"]
+          : ["case.organ_type", "case.appointment_type", "case.prepared_by", "case.surgery_date"],
       builtOn: INITIAL_BUILT_ON.request,
       review: null,
     },
