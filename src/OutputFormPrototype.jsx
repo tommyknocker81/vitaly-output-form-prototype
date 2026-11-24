@@ -1135,13 +1135,15 @@ function OutputFormEditor({ form, forms, onSelectForm, channel, setChannel, setS
 }
 
 const FORMS_TABS = ["Output documents", "Report form pre-population"];
+// Display order: pre-population first. Indices above stay as they are (routes and review logic use them).
+const FORMS_TAB_ORDER = [1, 0];
 
 function FormsPage({ tab, setTab, needsReview, children }) {
   return (
     <main className="px-8 pt-6 pb-10">
       <h2 className="text-[22px] font-semibold leading-[1.2]">Forms</h2>
       <div className="mt-6 mb-6 flex gap-6" style={{ borderBottom: `1px solid ${T.border}` }}>
-        {FORMS_TABS.map((t, i) => (
+        {FORMS_TAB_ORDER.map((i) => [FORMS_TABS[i], i]).map(([t, i]) => (
           <button
             key={t}
             type="button"
@@ -1180,7 +1182,7 @@ function routeFromHash(hash = window.location.hash) {
     unitTab,
     meetingTab: unitTab === 2 ? Math.max(0, MEETING_SLUGS.indexOf(sub)) : undefined,
     otherTab: unitTab === 3 ? Math.max(0, OTHER_SLUGS.indexOf(sub)) : undefined,
-    formsTab: unitTab === 1 ? (sub === "pre-population" ? 1 : 0) : undefined,
+    formsTab: unitTab === 1 ? (sub === "pre-population" || !sub ? 1 : 0) : undefined,
     formId: unitTab === 1 && INITIAL_OUTPUT_FORMS.some((f) => f.id === sub) ? sub : undefined,
     channel: unitTab === 1 && sub !== "pre-population" ? (channel === "emr" ? "emr" : "pdf") : undefined,
   };
@@ -1205,7 +1207,7 @@ export default function OutputFormPrototype() {
   const [toast, setToast] = useState(null);
   const [meetingTab, setMeetingTab] = useState(initialRoute?.meetingTab ?? 0);
   const [otherTab, setOtherTab] = useState(initialRoute?.otherTab ?? 0);
-  const [formsTab, setFormsTab] = useState(initialRoute?.formsTab ?? 0);
+  const [formsTab, setFormsTab] = useState(initialRoute?.formsTab ?? 1);
   const [channel, setChannel] = useState(initialRoute?.channel ?? "pdf");
   // Report pre-population maps request fields to report fields, so both forms' reviews can touch it.
   const [prepop, setPrepop] = useState({
