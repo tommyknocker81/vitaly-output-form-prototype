@@ -1490,7 +1490,9 @@ export default function OutputFormPrototype() {
             ? ["other-settings/agenda-columns", "other-settings/past-mdts-fields"][otherTab]
             : unitTab === 1 && formsTab === 1
               ? "forms/pre-population"
-              : null
+              : unitTab === 0
+                ? "basic-information"
+                : null
         }
       />
 

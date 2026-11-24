@@ -6,6 +6,66 @@
  */
 
 export const PAGE_DOCS = {
+  "basic-information": {
+    title: "Reschedule reasons",
+    path: "Care unit manager › Basic information › MDT info",
+    overview: [
+      "The reschedule reason options a clinician picks from when rescheduling a meeting now belong to the care unit instead of the request form. Source: requirement 4 – Centralize reschedule reasons (VS-16821).",
+      "**Why:** today the value set is a characteristic on the request form (SDC_Form). Every new form version has to carry it over by hand; if it's missed, the reschedule dropdown is empty and the clinician can't reschedule. There is no fallback and no warning.",
+      "**What changes:** both standard value sets move to the central form library (vtly_value_set). The care unit (wf_careunit) only references which one applies. Form version changes no longer affect rescheduling.",
+    ],
+    scope: {
+      in: "Read-only display in MDT info, automatic assignment at care unit creation, migration of existing care units.",
+      out: "Self-service editing, custom per-care-unit lists, the reschedule dialog itself.",
+    },
+    rules: [
+      ["Value sets", "rescheduling-reason-oncology (7 options) and rescheduling-reason-general (4 options). Both stay in the library even if one is unused."],
+      ["Assignment", "Set automatically when a care unit is created: therapeutic area Oncology → oncology set, anything else → general set. No admin action."],
+      ["Display", "Read-only in MDT info with the info message \"In case you would like to change it to another value set, contact support.\""],
+      ["Editing", "Not editable in the UI, also not in MDT info edit mode. Changes are rare and go through support."],
+      ["Therapeutic area edit", "Editing the therapeutic area later doesn't switch the value set; the edit mode says so."],
+      ["\"Other\"", "Selecting Other in the reschedule dialog still shows the free-text field."],
+      ["Form versions", "Reschedule reasons are not an affected item in the form version review."],
+      ["Migration", "Existing care units get the set matching their care unit type code. The reschedule-reasons characteristic on SDC_Form becomes dead data and is removed."],
+    ],
+    epics: [
+      {
+        title: "Epic 1 – Reschedule reasons on the care unit (VS-16821)",
+        stories: [
+          {
+            title: "1.1 See which reschedule reasons apply",
+            story: "As a care unit admin, I want to see which reschedule reasons clinicians get.",
+            ac: [
+              "**Given** I open Basic information, **then** MDT info shows \"Reschedule reasons\" with the set name and number of options.",
+              "**When** I click Show options, **then** the options are listed in dropdown order; Other is marked as free text.",
+              "**Then** an info message says to contact support to change the value set.",
+            ],
+          },
+          {
+            title: "1.2 Read-only in edit mode",
+            story: "As a care unit admin, I want it clear that I can't change the reschedule reasons myself.",
+            ac: [
+              "**When** I edit MDT info, **then** reschedule reasons show a Read-only tag and no input.",
+              "**Given** I change the therapeutic area, **then** the message says this doesn't change the reschedule reasons.",
+            ],
+          },
+          {
+            title: "1.3 Independent of form versions",
+            story: "As a care unit admin, I want a request form change to leave rescheduling working.",
+            ac: [
+              "**Given** I activate a new request form version, **then** the reschedule dropdown keeps the same options.",
+              "**Then** reschedule reasons are not listed in the version impact dialog.",
+            ],
+          },
+        ],
+      },
+    ],
+    openQuestions: [
+      "Should a care unit type code that is neither oncology nor general fall back to general?",
+      "Should admins see the list of options, or only the set name?",
+      "Do the option labels need translations in this UI?",
+    ],
+  },
   "forms/pre-population": {
     title: "Report form pre-population",
     path: "Care unit manager › Forms › Report form pre-population",

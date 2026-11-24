@@ -10,6 +10,7 @@ import documentIcon from "./icons/document.svg";
 import removeIcon from "./icons/remove.svg";
 import addIcon from "./icons/add.svg";
 import addDisabledIcon from "./icons/add-disabled.svg";
+import { Lock, ChevronDown, Info } from "lucide-react";
 
 // Care unit manager – Basic information tab (Figma node 14007:352151).
 
@@ -27,6 +28,23 @@ const INFO_FIELDS = [
   ["speciality", "Speciality"],
 ];
 
+
+// Requirement 4 – reschedule reasons live on the care unit, not on the request form.
+// Two standard value sets in the central form library; the care unit references one.
+// Assigned automatically at care unit creation from the therapeutic area; changes go via support.
+const RESCHEDULE_SETS = {
+  oncology: {
+    id: "rescheduling-reason-oncology",
+    name: "Oncology",
+    reasons: ["Radiological image material missing", "PA result is missing", "Data is missing", "Physician did not attend MDT", "Wrongly reported", "Cancelled meeting", "Other"],
+  },
+  general: {
+    id: "rescheduling-reason-general",
+    name: "General",
+    reasons: ["Data missing", "Physician did not attend", "Wrongly reported", "Other"],
+  },
+};
+const INITIAL_RESCHEDULE = INITIAL_INFO.therapeuticArea.toLowerCase() === "oncology" ? "oncology" : "general";
 
 const INITIAL_ORGS = ["Silver river memorial hospital", "Goldriver Hopsital", "Tergoii", "Private practice"];
 const ORG_DIRECTORY = ["UMC Utrecht", "St. Antonius Ziekenhuis", "Meander Medisch Centrum", "Diakonessenhuis"];
@@ -140,6 +158,7 @@ function MdtInfoCard({ info, onSave }) {
           </div>
         ))}
       </div>
+      <RescheduleReasons setKey={INITIAL_RESCHEDULE} editing={editing} areaChanged={editing && draft.therapeuticArea !== info.therapeuticArea} />
       {editing && (
         <div className="flex gap-2 mt-6">
           <Button onClick={() => { onSave(draft); setEditing(false); }}>Save</Button>
@@ -147,6 +166,65 @@ function MdtInfoCard({ info, onSave }) {
         </div>
       )}
     </Card>
+  );
+}
+
+function RescheduleReasons({ setKey, editing, areaChanged }) {
+  const [open, setOpen] = useState(false);
+  const set = RESCHEDULE_SETS[setKey];
+  return (
+    <div className="mt-6 pt-6" style={{ borderTop: `1px solid ${T.border}` }}>
+      <div className="flex items-center gap-2">
+        <div className="text-[14px] font-semibold leading-6" style={{ color: T.bodyText }}>Reschedule reasons</div>
+        {editing && (
+          <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[12px]" style={{ background: T.light, color: T.muted, border: `1px solid ${T.border}` }}>
+            <Lock size={11} /> Read-only
+          </span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-baseline gap-x-2 text-[15px] leading-6" style={{ color: T.bodyText }}>
+        <span>{set.name} reasons</span>
+        <span className="text-[13px]" style={{ color: T.muted }}>{set.reasons.length} options</span>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          aria-expanded={open}
+          className="inline-flex items-center gap-0.5 text-[14px] hover:underline"
+          style={{ color: T.primary }}
+        >
+          {open ? "Hide options" : "Show options"}
+          <ChevronDown size={14} style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform .2s" }} />
+        </button>
+      </div>
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <ul className="mt-2 flex flex-wrap gap-1.5">
+              {set.reasons.map((r) => (
+                <li key={r} className="h-7 px-2.5 inline-flex items-center rounded text-[13px]" style={{ background: T.light, border: `1px solid ${T.border}`, color: T.bodyText }}>
+                  {r}
+                  {r === "Other" && <span className="ml-1" style={{ color: T.muted }}>· free text</span>}
+                </li>
+              ))}
+            </ul>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <div className="mt-3 flex gap-2 items-start rounded px-3 py-2 text-[14px] leading-5" style={{ background: "#E8F0F3", color: T.bodyText }}>
+        <Info size={16} className="shrink-0 mt-0.5" style={{ color: T.primary }} />
+        <span>
+          {areaChanged
+            ? "Changing the therapeutic area doesn't change the reschedule reasons. In case you would like to change it to another value set, contact support."
+            : "In case you would like to change it to another value set, contact support."}
+        </span>
+      </div>
+    </div>
   );
 }
 
