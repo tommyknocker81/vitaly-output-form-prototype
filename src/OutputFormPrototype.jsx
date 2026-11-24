@@ -1252,7 +1252,8 @@ export default function OutputFormPrototype() {
 
   // Past MDTs fields read report-form fields, so they take part in report form reviews.
   const [pastMdt, setPastMdt] = useState({
-    fields: ["rep.conclusion", "rep.policy", "rep.clinical_study"],
+    // Default for every care unit (requirement 3): Conclusion and Policy.
+    fields: ["rep.conclusion", "rep.policy"],
     builtOn: INITIAL_BUILT_ON.report,
     review: null,
   });

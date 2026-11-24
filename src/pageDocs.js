@@ -375,7 +375,7 @@ export const PAGE_DOCS = {
             title: "1.4 Preview",
             story: "As a care unit admin, I want to see what clinicians will see.",
             ac: [
-              "**Then** the preview shows Historical MDTs with sample previous reports; one is open by default and each opens and closes on click.",
+              "**Then** the preview shows Historical MDTs with 3 sample previous reports; one is open by default and each opens and closes on click.",
               "**Then** the open report lists the configured fields (label above value) in order; it follows edits live, newly added fields are highlighted.",
               "**Then** a report answered on an earlier form version keeps its own fields and says so.",
             ],

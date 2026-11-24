@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
-import { Pencil, Plus, AlertTriangle, ChevronDown, FileText } from "lucide-react";
+import { Pencil, Plus, AlertTriangle, ChevronDown, FileText, History } from "lucide-react";
 import { T } from "./tokens.js";
 import { AgendaColumns, AMBER, Chip, TypeChip, Btn, EditRow, FieldPicker, InfoTip } from "./MeetingSettings.jsx";
 import { FORM_DIFFS, versionOf, pastMdtFieldByKey, pastMdtFieldsFor } from "./formVersions.js";
@@ -18,8 +18,6 @@ const PAST_REPORTS = [
   { title: "CRC MDT Report", date: "13/08/2026" },
   // Answered on an earlier report form version: keeps that version's fields.
   { title: "CRC MDO Verslag", date: "11/06/2026", legacy: ["rep.conclusion"] },
-  { title: "CRC MDT Report", date: "13/05/2026" },
-  { title: "CRC MDT Report", date: "12/05/2026" },
 ];
 
 const SAMPLE = {
@@ -202,12 +200,15 @@ function PastMdtFields({ pastMdt, setPastMdt, onConfirmReview }) {
           )}
 
           {!editing && pastMdt.fields.length === 0 ? (
-            <div className="mt-5 px-6 py-8 rounded flex flex-col items-center text-center" style={{ border: `1px dashed ${T.gray400}`, background: "#FAFBFC" }}>
-              <p className="text-[16px] font-semibold">No fields configured</p>
-              <p className="mt-1 mb-4 text-[14px] leading-[1.5]" style={{ color: T.muted }}>
-                When a patient is re-discussed, previous reports show only their title and date.
+            <div className="mt-5 px-6 py-10 rounded flex flex-col items-center text-center" style={{ border: `1px dashed ${T.gray400}`, background: "#FAFBFC" }}>
+              <span className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#E6F2F6" }}>
+                <History size={22} color={T.primary} />
+              </span>
+              <p className="mt-3 text-[16px] font-semibold">No fields configured</p>
+              <p className="mt-1 mb-4 text-[14px] leading-[1.5] max-w-[340px]" style={{ color: T.muted }}>
+                When a patient is re-discussed, previous MDT reports show only their title and date. Choose report form fields to show with them.
               </p>
-              <Btn onClick={() => startEdit(true)}><Plus size={16} /> Configure fields</Btn>
+              <Btn onClick={() => startEdit(true)}><Pencil size={15} /> Configure fields</Btn>
             </div>
           ) : (
             <>
