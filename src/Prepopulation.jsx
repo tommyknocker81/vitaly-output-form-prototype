@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useId } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Pencil, X, Plus, ArrowRight, AlertTriangle, AlertCircle, ChevronDown, Check } from "lucide-react";
+import { Pencil, X, Plus, ArrowRight, ArrowRightLeft, AlertTriangle, AlertCircle, ChevronDown, Check } from "lucide-react";
 import { T } from "./tokens.js";
 import { InfoTip } from "./MeetingSettings.jsx";
 import { MAP_TYPES, mapFieldByKey, mapFieldsFor, mappingIssue, versionOf, FORM_DIFFS, SOURCE_FORMS } from "./formVersions.js";
@@ -250,7 +250,9 @@ export default function Prepopulation({ prepop, setPrepop, onConfirmReview }) {
     <Chip bg={AMBER.chipBg} fg={AMBER.chipFg}>Needs review</Chip>
   ) : prepop.mappings.length ? (
     <Chip bg="#E8F3E5" fg="#3E7A31">Up to date</Chip>
-  ) : null;
+  ) : (
+    <Chip bg="#EEF1F3" fg="#444C54">Not set up</Chip>
+  );
 
   return (
     <section
@@ -300,10 +302,15 @@ export default function Prepopulation({ prepop, setPrepop, onConfirmReview }) {
         )}
 
         {!editing && prepop.mappings.length === 0 ? (
-          <div className="mt-5 px-4 py-6 rounded text-center" style={{ border: `1px dashed ${T.gray400}` }}>
-            <p className="font-semibold">No mappings configured</p>
-            <p className="mt-1 mb-3.5 text-[14px]" style={{ color: T.muted }}>The report form opens blank when first filled in.</p>
-            <Btn onClick={() => startEdit(true)}><Plus size={16} /> Add mapping</Btn>
+          <div className="mt-5 px-6 py-10 rounded flex flex-col items-center text-center" style={{ border: `1px dashed ${T.gray400}`, background: "#FAFBFC" }}>
+            <span className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#E6F2F6" }}>
+              <ArrowRightLeft size={22} color={T.primary} />
+            </span>
+            <p className="mt-3 text-[16px] font-semibold">No pre-population set up yet</p>
+            <p className="mt-1 mb-4 text-[14px] leading-[1.5] max-w-[440px]" style={{ color: T.muted }}>
+              Map request form fields to report form fields so the scribe starts from the referral's answers instead of a blank report.
+            </p>
+            <Btn onClick={() => startEdit(true)}><Pencil size={15} /> Set up pre-population</Btn>
           </div>
         ) : editing ? (
           <div className="mt-5">

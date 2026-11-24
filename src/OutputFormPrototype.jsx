@@ -1202,13 +1202,8 @@ export default function OutputFormPrototype() {
   const [channel, setChannel] = useState(initialRoute?.channel ?? "pdf");
   // Report pre-population maps request fields to report fields, so both forms' reviews can touch it.
   const [prepop, setPrepop] = useState({
-    mappings: [
-      { from: "req.proposed_conclusion", to: "rep.conclusion" },
-      { from: "req.proposed_policy", to: "rep.policy" },
-      { from: "req.proposed_study", to: "rep.clinical_study" },
-      { from: "req.diagnosis", to: "rep.diagnosis" },
-      { from: "req.organ_type", to: "rep.organ_structure" },
-    ],
+    // Starts empty: the admin sets up the first mappings from the empty state.
+    mappings: [],
     builtOn: { ...INITIAL_BUILT_ON },
     reviews: [],
   });
