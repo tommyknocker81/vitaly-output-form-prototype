@@ -219,7 +219,11 @@ function PastMdtFields({ pastMdt, setPastMdt, onConfirmReview }) {
               )}
               <p className="mt-3 text-[13px]" style={{ color: "#444C54" }}>
                 {editing
-                  ? `${draft.length} field${draft.length === 1 ? "" : "s"} selected`
+                  ? (() => {
+                      const gone = draft.filter((k) => removedInReview.includes(k)).length;
+                      const kept = draft.length - gone;
+                      return `${kept} field${kept === 1 ? "" : "s"} selected${gone ? ` · ${gone} removed` : ""}`;
+                    })()
                   : removedInReview.length
                     ? `${kept} field${kept === 1 ? "" : "s"} in use · ${removedInReview.length} removed`
                     : `${kept} field${kept === 1 ? "" : "s"} in use`}
@@ -234,6 +238,7 @@ function PastMdtFields({ pastMdt, setPastMdt, onConfirmReview }) {
                       n={i + 1}
                       field={pastMdtFieldByKey(k)}
                       isNew={added.includes(k)}
+                      removed={removedInReview.includes(k)}
                       onRemove={(x) => setDraft((d) => d.filter((y) => y !== x))}
                     />
                   ))}

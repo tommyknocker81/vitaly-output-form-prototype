@@ -249,9 +249,11 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
 
 /* ------------------------------------------------------ columns card */
 
-export function EditRow({ k, n, isNew, onRemove, field }) {
+export function EditRow({ k, n, isNew, onRemove, field, removed }) {
   const controls = useDragControls();
   const f = field ?? fieldByKey(k);
+  // Retired, or removed by the form version in review: same red styling as outside edit mode.
+  const gone = f.retired || removed;
   return (
     <Reorder.Item
       value={k}
@@ -260,7 +262,7 @@ export function EditRow({ k, n, isNew, onRemove, field }) {
       whileDrag={{ boxShadow: "0 4px 12px rgba(0,37,50,.14)", borderColor: T.primary, background: "#F2FAFC", zIndex: 10 }}
       className="relative flex items-center gap-1.5 py-1 pl-0.5 pr-1 rounded select-none"
       style={
-        f.retired
+        gone
           ? { border: "1px solid #F8E7E6", background: "#F8E7E6", boxShadow: `inset 3px 0 0 ${T.danger}` }
           : { border: "1px solid transparent", background: T.light }
       }
@@ -273,8 +275,8 @@ export function EditRow({ k, n, isNew, onRemove, field }) {
       >
         <GripIcon />
       </button>
-      <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: f.retired ? T.danger : "#00566E" }}>{n}</span>
-      <span className="flex-1 font-semibold text-[15px]" style={f.retired ? { textDecoration: "line-through", color: T.gray600 } : undefined}>{f.label}</span>
+      <span className="w-5 text-[12px] font-bold tabular-nums" style={{ color: gone ? T.danger : "#00566E" }}>{n}</span>
+      <span className="flex-1 font-semibold text-[15px]" style={gone ? { textDecoration: "line-through", color: T.gray600 } : undefined}>{f.label}</span>
       {isNew && <Chip bg="#E6F2F6" fg="#00566E">New</Chip>}
       <TypeChip>{f.type}</TypeChip>
       <button type="button" aria-label={`Remove ${f.label}`} onClick={() => onRemove(k)} className="w-9 h-9 flex items-center justify-center rounded hover:bg-white" style={{ color: T.gray600 }}>
@@ -511,7 +513,7 @@ export function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview 
                 <p className="mt-3.5 text-[14px]">Extra columns shown on the MDT meeting agenda, after the system columns.</p>
               )}
               <Progress
-                used={editing ? draft.filter((k) => !fieldByKey(k)?.retired).length : agenda.columns.length - removedInReview.length - orphans.length}
+                used={editing ? draft.filter((k) => !fieldByKey(k)?.retired && !removedInReview.includes(k)).length : agenda.columns.length - removedInReview.length - orphans.length}
                 label={
                   !editing && (removedInReview.length || orphans.length)
                     ? `${agenda.columns.length - removedInReview.length - orphans.length} of ${MAX_AGENDA_COLUMNS} in use · ${removedInReview.length + orphans.length} removed`
@@ -522,7 +524,7 @@ export function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview 
               {editing ? (
                 <Reorder.Group axis="y" values={draft} onReorder={setDraft} className="mt-3.5 flex flex-col gap-1.5">
                   {draft.map((k, i) => (
-                    <EditRow key={k} k={k} n={i + 1} isNew={added.includes(k)} onRemove={(x) => setDraft((d) => d.filter((y) => y !== x))} />
+                    <EditRow key={k} k={k} n={i + 1} isNew={added.includes(k)} removed={removedInReview.includes(k)} onRemove={(x) => setDraft((d) => d.filter((y) => y !== x))} />
                   ))}
                 </Reorder.Group>
               ) : (
