@@ -315,11 +315,6 @@ function PastMdtFields({ pastMdt, setPastMdt, onConfirmReview }) {
       </section>
 
       <div className="flex-1 min-w-0 w-full max-w-[720px]">
-        <div className="mb-3">
-          <p className="text-[14px]" style={{ color: "#444C54" }}>
-            What a clinician sees for a re-discussed patient. Open a report to see its fields.
-          </p>
-        </div>
         <HistoricalMdts fields={previewFields} added={added} />
       </div>
     </div>
