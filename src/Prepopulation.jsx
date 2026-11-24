@@ -84,20 +84,24 @@ function ColumnHeads() {
 
 // Field dropdown in the design system's style: label + type tag, unsupported types
 // and already-mapped targets listed but disabled. Keyboard: Enter/Space/↓ open,
-// ↑/↓ move, Enter picks, Esc closes.
-function FieldSelect({ label, value, fields, used, onChange, invalid }) {
+// ↑/↓ move, Enter picks, Esc closes. With `matchType`, only fields of that type
+// can be picked; the rest are listed under "Different type", disabled.
+function FieldSelect({ label, value, fields, used, matchType, onChange, invalid }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
   const ref = useRef(null);
   const listId = useId();
   const selected = value ? mapFieldByKey(value) : null;
 
+  const supported = fields.filter((f) => !MAP_TYPES[f.type].unsupported);
+  const fits = (f) => !matchType || f.type === matchType;
   const options = [
-    ...fields.filter((f) => !MAP_TYPES[f.type].unsupported).map((f) => {
+    ...supported.filter(fits).map((f) => {
       const taken = used?.includes(f.key) && f.key !== value;
-      return { f, disabled: taken, note: taken ? "Already mapped" : null };
+      return { f, disabled: taken, note: taken ? "Already mapped" : null, group: null };
     }),
-    ...fields.filter((f) => MAP_TYPES[f.type].unsupported).map((f) => ({ f, disabled: true, note: "Not supported", unsupported: true })),
+    ...supported.filter((f) => !fits(f)).map((f) => ({ f, disabled: true, group: "Different type" })),
+    ...fields.filter((f) => MAP_TYPES[f.type].unsupported).map((f) => ({ f, disabled: true, group: "Not supported" })),
   ];
   const enabledIdx = options.map((o, i) => (o.disabled ? -1 : i)).filter((i) => i >= 0);
 
@@ -172,9 +176,15 @@ function FieldSelect({ label, value, fields, used, onChange, invalid }) {
               const isSel = o.f.key === value;
               return (
                 <li key={o.f.key}>
-                  {o.unsupported && !options[i - 1]?.unsupported && (
-                    <div className="px-3 pt-2 pb-1 mt-1 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: T.muted, borderTop: "1px solid #EEF1F3" }}>
-                      Not supported
+                  {i === 0 && matchType && (
+                    <div className="px-3 pt-1.5 pb-1 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: T.muted }}>
+                      Matches {MAP_TYPES[matchType].label}
+                      {o.group && <span className="block mt-1 mb-1 normal-case tracking-normal text-[13px] font-normal">No report field has this type.</span>}
+                    </div>
+                  )}
+                  {o.group && options[i - 1]?.group !== o.group && (
+                    <div className="px-3 pt-2 pb-1 mt-1 text-[11px] font-bold uppercase tracking-[0.08em]" style={{ color: T.muted, borderTop: i ? "1px solid #EEF1F3" : "none" }}>
+                      {o.group}
                     </div>
                   )}
                   <button
@@ -194,7 +204,7 @@ function FieldSelect({ label, value, fields, used, onChange, invalid }) {
                     }}
                   >
                     <span className="flex-1 min-w-0 truncate">{o.f.label}</span>
-                    {o.note && !o.unsupported && <span className="text-[12px]">{o.note}</span>}
+                    {o.note && <span className="text-[12px]">{o.note}</span>}
                     <TypeChip type={o.f.type} muted={o.disabled} onWhite />
                     {isSel && <Check size={16} color={T.primary} className="shrink-0" />}
                   </button>
@@ -335,7 +345,10 @@ export default function Prepopulation({ prepop, setPrepop, onConfirmReview }) {
                           label={`Request form field ${i + 1}`}
                           value={m.from}
                           fields={requestFields}
-                          onChange={(v) => update(m.id, { from: v })}
+                          // A new type clears a report field that no longer fits.
+                          onChange={(v) =>
+                            update(m.id, { from: v, ...(m.to && mapFieldByKey(m.to).type !== mapFieldByKey(v).type ? { to: null } : {}) })
+                          }
                           invalid={bad}
                         />
                         <ArrowRight size={20} color={T.gray600} className="shrink-0" />
@@ -344,6 +357,7 @@ export default function Prepopulation({ prepop, setPrepop, onConfirmReview }) {
                           value={m.to}
                           fields={reportFields}
                           used={usedTargets}
+                          matchType={m.from ? mapFieldByKey(m.from).type : null}
                           onChange={(v) => update(m.id, { to: v })}
                           invalid={bad}
                         />
@@ -376,7 +390,7 @@ export default function Prepopulation({ prepop, setPrepop, onConfirmReview }) {
               <Plus size={16} /> Add mapping
             </button>
             <p className="mt-3 text-[13px]" style={{ color: T.muted }}>
-              Fields map only to the same type (and the same choice subtype). Choice · checkboxes and Open choice are not supported.
+              Pick the request form field first: the report form list then only offers fields of the same type (and the same choice subtype). Choice · checkboxes and Open choice are not supported.
             </p>
           </div>
         ) : (
