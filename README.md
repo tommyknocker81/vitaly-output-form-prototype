@@ -28,3 +28,12 @@ Each tab has its own link (the address bar follows as you click; Back/Forward wo
 | Meeting › Video conferencing | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/meeting/video-conferencing |
 | Other settings › Agenda columns | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/other-settings/agenda-columns |
 | Other settings › Past MDTs fields | https://tommyknocker81.github.io/vitaly-output-form-prototype/#/other-settings/past-mdts-fields |
+
+## Positive and negative flow
+
+A floating switch at the bottom of the page toggles between two scenarios (default: Positive).
+
+- **Positive flow** – everything is up to date.
+- **Negative flow** (`?flow=negative`) – new request and report form versions are waiting. Fields they removed are still in use, so output documents, agenda columns and Past MDTs fields (e.g. Clinical study) need review.
+
+Switching starts the prototype over in that scenario and keeps the open page.

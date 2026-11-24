@@ -1195,27 +1195,148 @@ function hashFor(unitTab, meetingTab, formId, formsTab, channel, otherTab) {
   return `#/${UNIT_SLUGS[unitTab]}`;
 }
 
-export default function OutputFormPrototype() {
-  const initialRoute = useMemo(() => routeFromHash(), []);
-  const [unitTab, setUnitTab] = useState(initialRoute?.unitTab ?? 1); // 0 = Basic information, 1 = Output forms, 2 = Meeting
-  const [outputForms, setOutputForms] = useState(INITIAL_OUTPUT_FORMS);
-  const [activeId, setActiveId] = useState(initialRoute?.formId ?? INITIAL_OUTPUT_FORMS[0].id);
-  const [sourceForms, setSourceForms] = useState({
-    request: { active: INITIAL_BUILT_ON.request, pending: null },
-    report: { active: INITIAL_BUILT_ON.report, pending: null },
+/* ------------------------------------------------------- flow scenarios */
+
+// A source form version change as a pure state update: affected items enter review,
+// the new version waits as "pending" until they're all reviewed.
+function applyFormChange(b, source, target) {
+  const diff = FORM_DIFFS[target];
+  const from = b.sourceForms[source].active;
+  let affected = 0;
+  const outputForms = b.outputForms.map((f) => {
+    if (!impactOf(f.sections, diff).length) return f;
+    affected++;
+    const sections = applyDiff(f.sections, diff);
+    const emr = applyDiff(f.emr.sections, diff);
+    return {
+      ...f,
+      preReview: f.reviews.length ? f.preReview : { pdf: f.sections, emr: f.emr.sections },
+      reviews: [...f.reviews, { source, from, to: target }],
+      sections,
+      baseline: sections,
+      emr: { sections: emr, baseline: emr },
+    };
   });
-  const [toast, setToast] = useState(null);
+  let { prepop, agenda, pastMdt, sourceForms } = b;
+  if (prepopImpact(prepop.mappings, diff, source).length) {
+    affected++;
+    prepop = { ...prepop, reviews: [...prepop.reviews, { source, from, to: target }] };
+  }
+  if (source === "request" && agendaImpact(agenda.columns, diff).length) {
+    affected++;
+    agenda = { ...agenda, review: { source, from, to: target } };
+  }
+  if (source === "report" && pastMdtImpact(pastMdt.fields, diff).length) {
+    affected++;
+    pastMdt = { ...pastMdt, review: { source, from, to: target } };
+  }
+  if (affected) sourceForms = { ...sourceForms, [source]: { ...sourceForms[source], pending: target } };
+  return { outputForms, prepop, agenda, pastMdt, sourceForms, affected };
+}
+
+// Positive flow: everything up to date. Negative flow: new request and report form
+// versions are waiting, and fields used by output documents, agenda columns and
+// Past MDTs fields (e.g. Clinical study) no longer exist in them.
+function initialState(flow) {
+  let b = {
+    outputForms: INITIAL_OUTPUT_FORMS,
+    sourceForms: {
+      request: { active: INITIAL_BUILT_ON.request, pending: null },
+      report: { active: INITIAL_BUILT_ON.report, pending: null },
+    },
+    // Starts empty: the admin sets up the first mappings from the empty state.
+    prepop: { mappings: [], builtOn: { ...INITIAL_BUILT_ON }, reviews: [] },
+    agenda: {
+      columns: ["case.organ_type", "case.referral_source", "case.appointment_type", "case.prepared_by", "case.surgery_date"],
+      builtOn: INITIAL_BUILT_ON.request,
+      review: null,
+    },
+    // Default for every care unit (requirement 3): Conclusion and Policy.
+    pastMdt: {
+      fields: flow === "negative" ? ["rep.conclusion", "rep.policy", "rep.clinical_study"] : ["rep.conclusion", "rep.policy"],
+      builtOn: INITIAL_BUILT_ON.report,
+      review: null,
+    },
+  };
+  if (flow === "negative") {
+    b = applyFormChange(b, "request", "CRC request form v2");
+    b = applyFormChange(b, "report", "CRC report form v2");
+  }
+  return b;
+}
+
+const FLOWS = [
+  ["positive", "Positive flow"],
+  ["negative", "Negative flow"],
+];
+const flowFromUrl = () => (new URLSearchParams(window.location.search).get("flow") === "negative" ? "negative" : "positive");
+
+// Floating switch between the two scenarios. Switching starts the prototype over in that scenario.
+function FlowSwitch({ flow, setFlow }) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Scenario"
+      className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1 rounded-full shadow-lg bg-white"
+      style={{ border: `1px solid ${T.border}` }}
+    >
+      {FLOWS.map(([k, label]) => {
+        const on = flow === k;
+        const dot = k === "positive" ? "#62A752" : "#FFB853";
+        return (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={on}
+            onClick={() => setFlow(k)}
+            className="relative h-9 px-4 rounded-full text-[14px] flex items-center gap-2 transition-colors"
+            style={{ color: on ? "#fff" : T.bodyText, fontWeight: on ? 600 : 400 }}
+          >
+            {on && <motion.span layoutId="flow-pill" className="absolute inset-0 rounded-full" style={{ background: "#002532" }} transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
+            <span className="relative w-2 h-2 rounded-full" style={{ background: dot }} />
+            <span className="relative">{label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function OutputFormPrototypeRoot() {
+  const [flow, setFlowState] = useState(flowFromUrl);
+  const setFlow = (f) => {
+    if (f === flow) return;
+    const url = new URL(window.location.href);
+    if (f === "negative") url.searchParams.set("flow", "negative");
+    else url.searchParams.delete("flow");
+    window.history.replaceState(null, "", url);
+    setFlowState(f);
+  };
+  return (
+    <>
+      <OutputFormPrototype key={flow} flow={flow} />
+      <FlowSwitch flow={flow} setFlow={setFlow} />
+    </>
+  );
+}
+
+function OutputFormPrototype({ flow }) {
+  const initialRoute = useMemo(() => routeFromHash(), []);
+  const initial = useMemo(() => initialState(flow), [flow]);
+  const [unitTab, setUnitTab] = useState(initialRoute?.unitTab ?? 1); // 0 = Basic information, 1 = Output forms, 2 = Meeting
+  const [outputForms, setOutputForms] = useState(initial.outputForms);
+  const [activeId, setActiveId] = useState(initialRoute?.formId ?? INITIAL_OUTPUT_FORMS[0].id);
+  const [sourceForms, setSourceForms] = useState(initial.sourceForms);
+  const [toast, setToast] = useState(
+    flow === "negative" ? "Negative flow: new request and report form versions removed fields in use. Review the items marked amber." : null
+  );
   const [meetingTab, setMeetingTab] = useState(initialRoute?.meetingTab ?? 0);
   const [otherTab, setOtherTab] = useState(initialRoute?.otherTab ?? 0);
   const [formsTab, setFormsTab] = useState(initialRoute?.formsTab ?? 1);
   const [channel, setChannel] = useState(initialRoute?.channel ?? "pdf");
   // Report pre-population maps request fields to report fields, so both forms' reviews can touch it.
-  const [prepop, setPrepop] = useState({
-    // Starts empty: the admin sets up the first mappings from the empty state.
-    mappings: [],
-    builtOn: { ...INITIAL_BUILT_ON },
-    reviews: [],
-  });
+  const [prepop, setPrepop] = useState(initial.prepop);
 
   // Keep the address bar in step with the open tab (a history entry per change, so Back works)…
   useEffect(() => {
@@ -1246,19 +1367,10 @@ export default function OutputFormPrototype() {
     };
   }, []);
   // Agenda columns read request-form fields, so they take part in request form reviews.
-  const [agenda, setAgenda] = useState({
-    columns: ["case.organ_type", "case.referral_source", "case.appointment_type", "case.prepared_by", "case.surgery_date"],
-    builtOn: INITIAL_BUILT_ON.request,
-    review: null,
-  });
+  const [agenda, setAgenda] = useState(initial.agenda);
 
   // Past MDTs fields read report-form fields, so they take part in report form reviews.
-  const [pastMdt, setPastMdt] = useState({
-    // Default for every care unit (requirement 3): Conclusion and Policy.
-    fields: ["rep.conclusion", "rep.policy"],
-    builtOn: INITIAL_BUILT_ON.report,
-    review: null,
-  });
+  const [pastMdt, setPastMdt] = useState(initial.pastMdt);
 
   // A pending source version goes live once nothing that depends on it is still in review.
   const stillInReview = (source, forms, agendaState, prepopState = prepop, pastState = pastMdt) =>
@@ -1291,37 +1403,12 @@ export default function OutputFormPrototype() {
 
   // Changing a source form: affected output forms enter review, the new version waits.
   const startChange = (source, target) => {
-    const diff = FORM_DIFFS[target];
-    const from = sourceForms[source].active;
-    let affected = 0;
-    const next = outputForms.map((f) => {
-      if (!impactOf(f.sections, diff).length) return f;
-      affected++;
-      const sections = applyDiff(f.sections, diff);
-      const emr = applyDiff(f.emr.sections, diff);
-      return {
-        ...f,
-        preReview: f.reviews.length ? f.preReview : { pdf: f.sections, emr: f.emr.sections },
-        reviews: [...f.reviews, { source, from, to: target }],
-        sections,
-        baseline: sections,
-        emr: { sections: emr, baseline: emr },
-      };
-    });
-    if (prepopImpact(prepop.mappings, diff, source).length) {
-      affected++;
-      setPrepop((p) => ({ ...p, reviews: [...p.reviews, { source, from, to: target }] }));
-    }
-    if (source === "request" && agendaImpact(agenda.columns, diff).length) {
-      affected++;
-      setAgenda((a) => ({ ...a, review: { source, from, to: target } }));
-    }
-    if (source === "report" && pastMdtImpact(pastMdt.fields, diff).length) {
-      affected++;
-      setPastMdt((p) => ({ ...p, review: { source, from, to: target } }));
-    }
-    setOutputForms(next);
-    if (affected) setSourceForms((sf) => ({ ...sf, [source]: { ...sf[source], pending: target } }));
+    const r = applyFormChange({ outputForms, prepop, agenda, pastMdt, sourceForms }, source, target);
+    setOutputForms(r.outputForms);
+    setPrepop(r.prepop);
+    setAgenda(r.agenda);
+    setPastMdt(r.pastMdt);
+    if (r.affected) setSourceForms(r.sourceForms);
     else activate(source, target);
   };
 
@@ -1504,10 +1591,10 @@ export default function OutputFormPrototype() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded shadow-lg text-[15px] text-white"
-            style={{ background: "#002532" }}
+            style={{ background: "#002532", x: "-50%" }}
+            className="fixed bottom-20 left-1/2 z-50 flex items-center gap-2 px-4 py-3 rounded shadow-lg text-[15px] text-white"
           >
-            <CheckCircle2 size={18} color="#62A752" /> {toast}
+            {toast.startsWith("Negative flow") ? <AlertTriangle size={18} color="#FFB853" /> : <CheckCircle2 size={18} color="#62A752" />} {toast}
           </motion.div>
         )}
       </AnimatePresence>
