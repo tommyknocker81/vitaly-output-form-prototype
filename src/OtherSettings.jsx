@@ -45,7 +45,7 @@ const SAMPLE = {
 };
 
 function HistoricalMdts({ fields, added }) {
-  const [open, setOpen] = useState(1);
+  const [open, setOpen] = useState(0);
   return (
     <section className="bg-white rounded overflow-hidden" style={{ border: `1px solid ${T.cardBorder}`, boxShadow: "0 1px 3px rgba(0,37,50,.06)" }} aria-label="Past MDTs preview">
       <div className="grid grid-cols-3 text-[13px] font-semibold uppercase tracking-[0.04em]" style={{ borderBottom: `1px solid ${T.border}` }} aria-hidden="true">
