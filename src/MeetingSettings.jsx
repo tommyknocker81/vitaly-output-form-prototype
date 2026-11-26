@@ -204,8 +204,8 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                             <div className="flex items-center gap-2.5">
                               <SexIcon sex={r.sex} />
                               <div className="leading-tight">
-                                <div className="font-semibold text-[14px]">{r.name}</div>
-                                <div className="text-[12px]" style={{ color: T.gray600 }}>ID {r.id} - {r.dob}</div>
+                                <div className="font-semibold text-[14px]">{lorem("patient.name", 2, 2)}</div>
+                                <div className="text-[12px]" style={{ color: T.gray600 }}>ID {lorem("patient.id", 1, 1)} - {lorem("patient.dob", 1, 1)}</div>
                               </div>
                             </div>
                           </td>
@@ -227,7 +227,7 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                           )}
                           {extra.map(({ key }) => (
                             <td key={key} className={cellBase} style={cellCfg(key)}>
-                              {lorem(`${key}-${r.name}`, 1, 3)}
+                              {lorem(key, 1, 3)}
                             </td>
                           ))}
                         </tr>
