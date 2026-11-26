@@ -35,25 +35,36 @@ function HistoricalMdts({ fields, added }) {
       </div>
       <ul className="px-6">
         {PAST_REPORTS.map((r, i) => {
-          const isOpen = open === i;
           const shown = r.legacy ?? fields;
+          // Nothing to show: a plain row with title and date, no chevron and nothing to expand.
+          const expandable = shown.length > 0;
+          const isOpen = expandable && open === i;
+          const head = (
+            <>
+              <FileText size={22} color="#fff" fill={T.primary} strokeWidth={1.5} className="shrink-0 mt-px" />
+              <span className="flex-1 min-w-0">
+                <span className="block text-[16px] font-semibold leading-[1.3]">{r.title}</span>
+                <span className="block text-[14px] italic mt-0.5" style={{ color: T.gray600 }}>{r.date}</span>
+              </span>
+            </>
+          );
           return (
             <li key={i} style={{ borderBottom: i < PAST_REPORTS.length - 1 ? `1px solid ${T.border}` : "none" }}>
-              <button
-                type="button"
-                aria-expanded={isOpen}
-                onClick={() => setOpen(isOpen ? null : i)}
-                className="w-full flex items-start gap-2.5 py-3.5 text-left"
-              >
-                <FileText size={22} color="#fff" fill={T.primary} strokeWidth={1.5} className="shrink-0 mt-px" />
-                <span className="flex-1 min-w-0">
-                  <span className="block text-[16px] font-semibold leading-[1.3]">{r.title}</span>
-                  <span className="block text-[14px] italic mt-0.5" style={{ color: T.gray600 }}>{r.date}</span>
-                </span>
-                <motion.span initial={false} animate={{ rotate: isOpen ? 180 : 0 }} className="flex shrink-0 mt-1">
-                  <ChevronDown size={20} color={T.primary} />
-                </motion.span>
-              </button>
+              {expandable ? (
+                <button
+                  type="button"
+                  aria-expanded={isOpen}
+                  onClick={() => setOpen(isOpen ? null : i)}
+                  className="w-full flex items-start gap-2.5 py-3.5 text-left"
+                >
+                  {head}
+                  <motion.span initial={false} animate={{ rotate: isOpen ? 180 : 0 }} className="flex shrink-0 mt-1">
+                    <ChevronDown size={20} color={T.primary} />
+                  </motion.span>
+                </button>
+              ) : (
+                <div className="w-full flex items-start gap-2.5 py-3.5">{head}</div>
+              )}
               <AnimatePresence initial={false}>
                 {isOpen && (
                   <motion.div
@@ -64,9 +75,6 @@ function HistoricalMdts({ fields, added }) {
                     className="overflow-hidden"
                   >
                     <div className="mb-4 px-4 py-4 rounded-sm flex flex-col gap-3.5" style={{ background: "#E8F0F3" }}>
-                      {shown.length === 0 && (
-                        <p className="text-[14px] italic" style={{ color: T.gray600 }}>No fields configured. Only the report title and date are shown.</p>
-                      )}
                       {shown.map((k) => {
                         const isAdded = !r.legacy && added.includes(k);
                         return (

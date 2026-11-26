@@ -449,7 +449,7 @@ export const PAGE_DOCS = {
             story: "As a care unit admin of a new care unit, I want a clear starting point.",
             ac: [
               "**Then** the card shows \"Not set up\" and \"No fields configured\" with a \"Configure fields\" button that opens edit mode with the field list open.",
-              "**Then** reports in the preview show only their title and date.",
+              "**Then** reports in the preview show only their title and date, with no chevron and nothing to expand.",
             ],
           },
         ],
