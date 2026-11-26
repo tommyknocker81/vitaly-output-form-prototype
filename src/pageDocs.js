@@ -192,7 +192,7 @@ export const PAGE_DOCS = {
       ["Removed field", "A column whose field is no longer on the active request form is hidden on the agenda and flagged until removed."],
       ["Version review", "Agenda columns are an affected item in the request form version review, like output forms. The new version goes live only after all affected items are reviewed."],
       ["Missing value", "A case with no value for a column shows \"—\"."],
-      ["Preview data", "The preview never shows realistic clinical data. Field values are lorem ipsum, the same placeholder in every row: three words, or one fixed paragraph for Text area fields. Patient shows as LAST NAME, first name · ID xxxxxxx · dd/mm/yyyy."],
+      ["Preview data", "The preview never shows realistic clinical data. Field values are lorem ipsum, one placeholder per field type: Text reads \"Eiusmod magna dolores\", Text area a fixed paragraph, other types their own three words. Patient shows as LAST NAME, first name · ID xxxxxxx · dd/mm/yyyy."],
     ],
     epics: [
       {
@@ -402,7 +402,7 @@ export const PAGE_DOCS = {
       ["Older reports", "Reports answered on an older report form version keep the fields configured for that version. Edits apply to the current version only."],
       ["Removed field", "After a report form version change, fields no longer in the new version are flagged and stay until the admin removes them. Only valid fields are shown."],
       ["Version review", "Past MDTs fields are an affected item in the report form version review. The new version goes live only after all affected items are reviewed."],
-      ["Preview data", "The preview never shows realistic clinical data. Field values are lorem ipsum, the same placeholder in every row: three words, or one fixed paragraph for Text area fields. Patient shows as LAST NAME, first name · ID xxxxxxx · dd/mm/yyyy."],
+      ["Preview data", "The preview never shows realistic clinical data. Field values are lorem ipsum, one placeholder per field type: Text reads \"Eiusmod magna dolores\", Text area a fixed paragraph, other types their own three words. Patient shows as LAST NAME, first name · ID xxxxxxx · dd/mm/yyyy."],
     ],
     epics: [
       {

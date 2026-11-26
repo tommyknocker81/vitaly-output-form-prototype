@@ -3,7 +3,7 @@
 const WORDS =
   "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat".split(" ");
 
-// Seeded by field key: the same field always shows the same placeholder, in every row.
+// Seeded by field type: fields of one type always show the same placeholder.
 function hash(s) {
   let h = 2166136261;
   for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
@@ -32,8 +32,11 @@ export function lorem(seed, min = 1, max = 3) {
   return text;
 }
 
-// Every Text area field shows the same paragraph; other types get a short three-word placeholder.
+// One placeholder per field type: every Text field reads "Eiusmod magna dolores", every
+// Text area the same paragraph, and each other type its own three words.
 export const LOREM_PARAGRAPH =
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua";
 
-export const previewValue = (field) => (field?.type === "Text area" ? LOREM_PARAGRAPH : lorem(field?.key ?? "", 3, 3));
+const BY_TYPE = { Text: "Eiusmod magna dolores", String: "Eiusmod magna dolores", "Text area": LOREM_PARAGRAPH };
+
+export const previewValue = (field) => BY_TYPE[field?.type] ?? lorem(`type:${field?.type ?? ""}`, 3, 3);
