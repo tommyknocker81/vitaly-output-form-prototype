@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { Pencil, Plus, AlertTriangle, ChevronDown, FileText, History } from "lucide-react";
 import { T } from "./tokens.js";
+import { lorem } from "./lorem.js";
 import { AgendaColumns, AMBER, Chip, TypeChip, Btn, EditRow, FieldPicker, InfoTip } from "./MeetingSettings.jsx";
 import { FORM_DIFFS, versionOf, pastMdtFieldByKey, pastMdtFieldsFor } from "./formVersions.js";
 
@@ -20,29 +21,6 @@ const PAST_REPORTS = [
   { title: "CRC MDO Verslag", date: "11/06/2026", legacy: ["rep.conclusion"] },
 ];
 
-const SAMPLE = {
-  "rep.conclusion": ["Final report – resectable disease, proceed to surgery.", "Final report", "Interim report – awaiting MRI.", "Final report", "Final report – staging incomplete."],
-  "rep.policy": [
-    "Laparoscopic right hemicolectomy.",
-    "Neoadjuvant chemoradiotherapy, re-discuss after restaging.",
-    "MRI pelvis before a decision.",
-    "Surveillance CT in 3 months.",
-    "Refer to the liver MDT.",
-  ],
-  "rep.clinical_study": ["Not eligible", "COLOPEC-2 – eligible, patient informed", "—", "Not eligible", "—"],
-  "rep.diagnosis": ["Adenocarcinoma of the colon", "Adenocarcinoma of the rectum", "Suspected rectal tumour", "Adenocarcinoma of the rectum", "Adenocarcinoma of the rectum"],
-  "rep.organ_structure": ["Ascending colon", "Rectum", "Rectum", "Rectum", "Rectum"],
-  "rep.tumour_stage": ["cT3N1M0", "cT3N2M0", "—", "cT2N1M0", "cT2N0M0"],
-  "rep.diagnosis_date": ["02/05/2026", "02/05/2026", "02/05/2026", "02/05/2026", "02/05/2026"],
-  "rep.mdt_datetime": ["18/08/2026 14:30", "13/08/2026 15:00", "11/06/2026 14:30", "13/05/2026 15:00", "12/05/2026 14:30"],
-  "rep.treatment_intent": ["Curative", "Curative", "—", "Curative", "Curative"],
-  "rep.discussed_before": ["Yes", "Yes", "Yes", "Yes", "No"],
-  "rep.treatment_options": ["Surgery", "Chemoradiotherapy, Surgery", "—", "Surveillance", "Surgery, Chemotherapy"],
-  "rep.reason_for_referral": ["Restaging after neoadjuvant therapy", "Restaging", "Additional imaging", "Second opinion", "New diagnosis"],
-  "rep.treatment_phase": ["Post-neoadjuvant", "Neoadjuvant", "Diagnostic", "Diagnostic", "Diagnostic"],
-  "rep.attachments": ["2 files", "1 file", "—", "—", "3 files"],
-  "rep.follow_up_date": ["01/10/2026", "—", "—", "—", "—"],
-};
 
 function HistoricalMdts({ fields, added }) {
   const [open, setOpen] = useState(0);
@@ -102,7 +80,7 @@ function HistoricalMdts({ fields, added }) {
                             style={isAdded ? { boxShadow: `inset 2px 0 0 ${T.primary}` } : undefined}
                           >
                             <p className="text-[14px] font-semibold">{pastMdtFieldByKey(k)?.label}</p>
-                            <p className="text-[15px] mt-0.5">{SAMPLE[k]?.[i] ?? "—"}</p>
+                            <p className="text-[15px] mt-0.5">{lorem(`${k}-${i}`, 3, 12)}</p>
                           </motion.div>
                         );
                       })}

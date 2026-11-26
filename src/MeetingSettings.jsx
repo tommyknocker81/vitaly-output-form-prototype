@@ -2,6 +2,7 @@ import { useState, useId } from "react";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import { Pencil, X, Plus, Search, AlertCircle, AlertTriangle, ChevronDown, CalendarDays, Video, Info } from "lucide-react";
 import { T } from "./tokens.js";
+import { lorem } from "./lorem.js";
 import GripIcon from "./GripIcon.jsx";
 import { MAX_AGENDA_COLUMNS, columnFieldsFor, fieldByKey, versionOf, FORM_DIFFS } from "./formVersions.js";
 
@@ -51,21 +52,16 @@ const PATIENTS = [
   {
     hospital: "Hospital A",
     rows: [
-      { name: "NAVARI, Nema", id: "5402170622", dob: "18/09/1986", sex: "f", tags: ["Re-discussed"], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Campbel", referrer: "Silver River MH",
-        v: { "case.organ_type": "Rectum", "case.appointment_type": "Follow-up", "case.prepared_by": "Radiology", "case.surgery_date": "—", "case.urgency": "Normal", "case.age_at_referral": "38", "case.diagnosis_date": "02.08.2024", "case.referral_reason": "Staging", "case.second_opinion": "No", "case.tumour_stage": "T3 N1", "case.ecog_status": "1" } },
-      { name: "BAUER, Fredric", id: "5402170622", dob: "18/09/1957", sex: "m", tags: [], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Myers", referrer: "UMC Utrecht",
-        v: { "case.organ_type": "Colon", "case.appointment_type": "First consultation", "case.prepared_by": "Radiology, Pathology", "case.surgery_date": "02.10.2024", "case.urgency": "High", "case.age_at_referral": "67", "case.diagnosis_date": "28.08.2024", "case.referral_reason": "Treatment plan", "case.second_opinion": "Yes", "case.tumour_stage": "T2 N0", "case.ecog_status": "0" } },
-      { name: "ROSAIRE, Carry", id: "5402170622", dob: "18/09/1986", sex: "f", tags: ["Re-discussed", "Re-scheduled"], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Campbel", referrer: "Antonius",
-        v: { "case.organ_type": "Colon", "case.appointment_type": "Re-discussion", "case.prepared_by": "Radiology", "case.surgery_date": "—", "case.urgency": "Normal", "case.age_at_referral": "38", "case.diagnosis_date": "11.07.2024", "case.referral_reason": "Second line", "case.second_opinion": "No", "case.tumour_stage": "T4 N2", "case.ecog_status": "2" } },
+      { name: "NAVARI, Nema", id: "5402170622", dob: "18/09/1986", sex: "f", tags: ["Re-discussed"], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Campbel", referrer: "Silver River MH" },
+      { name: "BAUER, Fredric", id: "5402170622", dob: "18/09/1957", sex: "m", tags: [], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Myers", referrer: "UMC Utrecht" },
+      { name: "ROSAIRE, Carry", id: "5402170622", dob: "18/09/1986", sex: "f", tags: ["Re-discussed", "Re-scheduled"], org: "Meander medical center", status: "In review", modified: "19.9.2024", publishing: "—", clinician: "Dr. Campbel", referrer: "Antonius" },
     ],
   },
   {
     hospital: "Hospital B",
     rows: [
-      { name: "LARSON, Zoe", id: "5402170622", dob: "18/09/1986", sex: "f", tags: [], org: "Twins Hospital Center", status: "Submitted", modified: "18.9.2024", publishing: "—", clinician: "Dr. Johnson", referrer: "Twins HC",
-        v: { "case.organ_type": "Colon", "case.appointment_type": "First consultation", "case.prepared_by": "Radiology", "case.surgery_date": "—", "case.urgency": "Normal", "case.age_at_referral": "38", "case.diagnosis_date": "05.09.2024", "case.referral_reason": "Staging", "case.second_opinion": "No", "case.tumour_stage": "T1 N0", "case.ecog_status": "0" } },
-      { name: "DAVIS, Eric", id: "5402170622", dob: "18/09/1986", sex: "m", tags: ["Re-scheduled"], org: "Twins Hospital Center", status: "In review", modified: "18.9.2024", publishing: "—", clinician: "Dr. Black", referrer: "Twins HC",
-        v: { "case.organ_type": "Rectum", "case.appointment_type": "Follow-up", "case.prepared_by": "Pathology", "case.surgery_date": "14.10.2024", "case.urgency": "High", "case.age_at_referral": "38", "case.diagnosis_date": "20.06.2024", "case.referral_reason": "Treatment plan", "case.second_opinion": "Yes", "case.tumour_stage": "T3 N0", "case.ecog_status": "1" } },
+      { name: "LARSON, Zoe", id: "5402170622", dob: "18/09/1986", sex: "f", tags: [], org: "Twins Hospital Center", status: "Submitted", modified: "18.9.2024", publishing: "—", clinician: "Dr. Johnson", referrer: "Twins HC" },
+      { name: "DAVIS, Eric", id: "5402170622", dob: "18/09/1986", sex: "m", tags: ["Re-scheduled"], org: "Twins Hospital Center", status: "In review", modified: "18.9.2024", publishing: "—", clinician: "Dr. Black", referrer: "Twins HC" },
     ],
   },
 ];
@@ -231,7 +227,7 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                           )}
                           {extra.map(({ key }) => (
                             <td key={key} className={cellBase} style={cellCfg(key)}>
-                              {r.v[key] ?? "—"}
+                              {lorem(`${key}-${r.name}`, 1, 3)}
                             </td>
                           ))}
                         </tr>
