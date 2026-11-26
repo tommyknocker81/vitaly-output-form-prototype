@@ -31,3 +31,9 @@ export function lorem(seed, min = 1, max = 3) {
   cache.set(id, text);
   return text;
 }
+
+// Every Text area field shows the same paragraph; other types get a short three-word placeholder.
+export const LOREM_PARAGRAPH =
+  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua";
+
+export const previewValue = (field) => (field?.type === "Text area" ? LOREM_PARAGRAPH : lorem(field?.key ?? "", 3, 3));

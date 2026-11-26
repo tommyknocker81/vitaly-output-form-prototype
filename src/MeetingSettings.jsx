@@ -2,7 +2,7 @@ import { useState, useId } from "react";
 import { motion, AnimatePresence, Reorder, useDragControls } from "framer-motion";
 import { Pencil, X, Plus, Search, AlertCircle, AlertTriangle, ChevronDown, CalendarDays, Video, Info } from "lucide-react";
 import { T } from "./tokens.js";
-import { lorem } from "./lorem.js";
+import { previewValue } from "./lorem.js";
 import GripIcon from "./GripIcon.jsx";
 import { MAX_AGENDA_COLUMNS, columnFieldsFor, fieldByKey, versionOf, FORM_DIFFS } from "./formVersions.js";
 
@@ -227,7 +227,7 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                           )}
                           {extra.map(({ key }) => (
                             <td key={key} className={cellBase} style={cellCfg(key)}>
-                              {lorem(key, 3, 3)}
+                              {previewValue(fieldByKey(key))}
                             </td>
                           ))}
                         </tr>

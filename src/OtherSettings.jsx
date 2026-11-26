@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, AnimatePresence, Reorder } from "framer-motion";
 import { Pencil, Plus, AlertTriangle, ChevronDown, FileText, History } from "lucide-react";
 import { T } from "./tokens.js";
-import { lorem } from "./lorem.js";
+import { previewValue } from "./lorem.js";
 import { AgendaColumns, AMBER, Chip, TypeChip, Btn, EditRow, FieldPicker, InfoTip } from "./MeetingSettings.jsx";
 import { FORM_DIFFS, versionOf, pastMdtFieldByKey, pastMdtFieldsFor } from "./formVersions.js";
 
@@ -80,7 +80,7 @@ function HistoricalMdts({ fields, added }) {
                             style={isAdded ? { boxShadow: `inset 2px 0 0 ${T.primary}` } : undefined}
                           >
                             <p className="text-[14px] font-semibold">{pastMdtFieldByKey(k)?.label}</p>
-                            <p className="text-[15px] mt-0.5">{lorem(k, 3, 3)}</p>
+                            <p className="text-[15px] mt-0.5">{previewValue(pastMdtFieldByKey(k))}</p>
                           </motion.div>
                         );
                       })}
