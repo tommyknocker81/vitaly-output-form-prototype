@@ -204,8 +204,8 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                             <div className="flex items-center gap-2.5">
                               <SexIcon sex={r.sex} />
                               <div className="leading-tight">
-                                <div className="font-semibold text-[14px]">{lorem("patient.name", 2, 2)}</div>
-                                <div className="text-[12px]" style={{ color: T.gray600 }}>ID {lorem("patient.id", 1, 1)} - {lorem("patient.dob", 1, 1)}</div>
+                                <div className="font-semibold text-[14px]">LAST NAME, first name</div>
+                                <div className="text-[12px]" style={{ color: T.gray600 }}>ID xxxxxxx - dd/mm/yyyy</div>
                               </div>
                             </div>
                           </td>
