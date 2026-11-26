@@ -430,7 +430,9 @@ export function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview 
     setPicker(withPicker);
   };
   const save = () => {
-    setAgenda((a) => ({ ...a, columns: draft }));
+    // Removing every flagged column by hand resolves the review, same as the confirm button.
+    if (review && !draft.some((k) => FORM_DIFFS[review.to].removed.includes(k))) onConfirmReview(draft);
+    else setAgenda((a) => ({ ...a, columns: draft }));
     setEditing(false);
     setPicker(false);
   };
@@ -488,7 +490,7 @@ export function AgendaColumns({ agenda, setAgenda, requestForm, onConfirmReview 
                   {removedInReview.length} column{removedInReview.length > 1 ? "s use fields" : " uses a field"} that {versionOf(review.to)} removes.
                   {" "}{versionOf(review.to)} goes live once this and every affected output form are reviewed.
                 </p>
-                <Btn className="mt-2.5" onClick={onConfirmReview}>
+                <Btn className="mt-2.5" onClick={() => onConfirmReview()}>
                   Remove {removedInReview.length} column{removedInReview.length > 1 ? "s" : ""} and confirm
                 </Btn>
               </div>

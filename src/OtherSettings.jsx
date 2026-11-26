@@ -4,7 +4,7 @@ import { Pencil, Plus, AlertTriangle, ChevronDown, FileText, History } from "luc
 import { T } from "./tokens.js";
 import { previewValue } from "./lorem.js";
 import { AgendaColumns, AMBER, Chip, TypeChip, Btn, EditRow, FieldPicker, InfoTip } from "./MeetingSettings.jsx";
-import { FORM_DIFFS, versionOf, pastMdtFieldByKey, pastMdtFieldsFor } from "./formVersions.js";
+import { FORM_DIFFS, fieldByKey, versionOf, pastMdtFieldByKey, pastMdtFieldsFor } from "./formVersions.js";
 
 // Care unit › Other settings: Agenda columns (moved from Meeting) and Past MDTs fields
 // (requirement 3 – Past MDTs fields configuration, VS-16817 / VS-16818).
@@ -121,7 +121,9 @@ function PastMdtFields({ pastMdt, setPastMdt, onConfirmReview }) {
     setPicker(withPicker);
   };
   const save = () => {
-    setPastMdt((p) => ({ ...p, fields: draft }));
+    // Removing every flagged field by hand resolves the review, same as the confirm button.
+    if (review && !draft.some((k) => FORM_DIFFS[review.to].removed.includes(k))) onConfirmReview(draft);
+    else setPastMdt((p) => ({ ...p, fields: draft }));
     setEditing(false);
     setPicker(false);
   };
@@ -170,7 +172,7 @@ function PastMdtFields({ pastMdt, setPastMdt, onConfirmReview }) {
                   {removedInReview.length} field{removedInReview.length > 1 ? "s are" : " is"} no longer in {versionOf(review.to)}.
                   {" "}Reports already written on {versionOf(review.from)} keep showing their fields.
                 </p>
-                <Btn className="mt-2.5" onClick={onConfirmReview}>
+                <Btn className="mt-2.5" onClick={() => onConfirmReview()}>
                   Remove {removedInReview.length} field{removedInReview.length > 1 ? "s" : ""} and confirm
                 </Btn>
               </div>
@@ -307,7 +309,8 @@ function PastMdtFields({ pastMdt, setPastMdt, onConfirmReview }) {
 /* ------------------------------------------------------------------ page */
 
 export default function OtherSettings({ tab, setTab, agenda, setAgenda, requestForm, onConfirmAgendaReview, pastMdt, setPastMdt, onConfirmPastMdtReview }) {
-  const flags = [!!agenda.review, !!pastMdt.review];
+  // A dot only while something critical is on screen: a pending review or a column whose field is gone.
+  const flags = [!!agenda.review || agenda.columns.some((k) => fieldByKey(k)?.retired), !!pastMdt.review];
   return (
     <main className="px-8 pt-6 pb-10">
       <h2 className="text-[22px] font-semibold leading-[1.2]">Other settings</h2>

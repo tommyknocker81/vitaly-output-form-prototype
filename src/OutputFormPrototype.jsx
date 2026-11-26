@@ -9,7 +9,7 @@ import OtherSettings from "./OtherSettings.jsx";
 import HelpDrawer from "./HelpDrawer.jsx";
 import Prepopulation from "./Prepopulation.jsx";
 import GripIcon from "./GripIcon.jsx";
-import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact, prepopImpact, pastMdtImpact } from "./formVersions.js";
+import { SECTION_SOURCE, SOURCE_FORMS, FORM_DIFFS, versionOf, bumpVersion, impactOf, applyDiff, publishSections, agendaImpact, fieldByKey, prepopImpact, pastMdtImpact } from "./formVersions.js";
 
 /*
  * Form data model. Every section is a card on the left and a block in the
@@ -1494,19 +1494,20 @@ function OutputFormPrototype({ flow }) {
     if (!activated) setToast("Pre-population confirmed. Other affected items are still to review.");
   };
 
-  const confirmAgendaReview = () => {
+  // `columns`/`fields` are passed when the admin removed the flagged items by hand in edit mode.
+  const confirmAgendaReview = (columns = agenda.columns) => {
     const r = agenda.review;
     const removed = FORM_DIFFS[r.to].removed;
-    const nextAgenda = { columns: agenda.columns.filter((k) => !removed.includes(k)), builtOn: r.to, review: null };
+    const nextAgenda = { columns: columns.filter((k) => !removed.includes(k)), builtOn: r.to, review: null };
     setAgenda(nextAgenda);
     if (!stillInReview(r.source, outputForms, nextAgenda)) activate(r.source, r.to);
     else setToast("Agenda columns confirmed. Other affected items are still to review.");
   };
 
-  const confirmPastMdtReview = () => {
+  const confirmPastMdtReview = (fields = pastMdt.fields) => {
     const r = pastMdt.review;
     const removed = FORM_DIFFS[r.to].removed;
-    const next = { fields: pastMdt.fields.filter((k) => !removed.includes(k)), builtOn: r.to, review: null };
+    const next = { fields: fields.filter((k) => !removed.includes(k)), builtOn: r.to, review: null };
     setPastMdt(next);
     if (!stillInReview(r.source, outputForms, agenda, prepop, next)) activate(r.source, r.to);
     else setToast("Past MDTs fields confirmed. Other affected items are still to review.");
@@ -1520,7 +1521,7 @@ function OutputFormPrototype({ flow }) {
         <UnitHeader
           activeTab={unitTab}
           onChange={setUnitTab}
-          flags={[false, outputForms.some((f) => f.reviews.length) || prepop.reviews.length > 0, false, !!agenda.review || !!pastMdt.review]}
+          flags={[false, outputForms.some((f) => f.reviews.length) || prepop.reviews.length > 0, false, !!agenda.review || agenda.columns.some((k) => fieldByKey(k)?.retired) || !!pastMdt.review]}
         />
 
         {/* Both pages stay mounted so their state survives tab switches. */}

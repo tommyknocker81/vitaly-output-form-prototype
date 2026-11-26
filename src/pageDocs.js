@@ -193,6 +193,7 @@ export const PAGE_DOCS = {
       ["Version review", "Agenda columns are an affected item in the request form version review, like output forms. The new version goes live only after all affected items are reviewed."],
       ["Missing value", "A case with no value for a column shows \"—\"."],
       ["Preview data", "The preview never shows realistic clinical data. Field values are lorem ipsum, one placeholder per field type: Text reads \"Eiusmod magna dolores\", Text area a fixed paragraph, other types their own three words. Patient shows as LAST NAME, first name · ID xxxxxxx · dd/mm/yyyy."],
+      ["Attention dot", "The amber dot on a tab shows only while something critical is on it (a field removed by a form change, or a column whose field is gone). Removing those items, with the confirm button or by hand in edit mode, clears the dot."],
     ],
     epics: [
       {
@@ -403,6 +404,7 @@ export const PAGE_DOCS = {
       ["Removed field", "After a report form version change, fields no longer in the new version are flagged and stay until the admin removes them. Only valid fields are shown."],
       ["Version review", "Past MDTs fields are an affected item in the report form version review. The new version goes live only after all affected items are reviewed."],
       ["Preview data", "The preview never shows realistic clinical data. Field values are lorem ipsum, one placeholder per field type: Text reads \"Eiusmod magna dolores\", Text area a fixed paragraph, other types their own three words. Patient shows as LAST NAME, first name · ID xxxxxxx · dd/mm/yyyy."],
+      ["Attention dot", "The amber dot on a tab shows only while something critical is on it (a field removed by a form change, or a column whose field is gone). Removing those items, with the confirm button or by hand in edit mode, clears the dot."],
     ],
     epics: [
       {
