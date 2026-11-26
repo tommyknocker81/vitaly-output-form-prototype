@@ -227,7 +227,7 @@ function AgendaPreview({ columns, mode, setMode, highlight, removed, editing }) 
                           )}
                           {extra.map(({ key }) => (
                             <td key={key} className={cellBase} style={cellCfg(key)}>
-                              {lorem(key, 1, 3)}
+                              {lorem(key, 3, 3)}
                             </td>
                           ))}
                         </tr>

@@ -80,7 +80,7 @@ function HistoricalMdts({ fields, added }) {
                             style={isAdded ? { boxShadow: `inset 2px 0 0 ${T.primary}` } : undefined}
                           >
                             <p className="text-[14px] font-semibold">{pastMdtFieldByKey(k)?.label}</p>
-                            <p className="text-[15px] mt-0.5">{lorem(k, 3, 12)}</p>
+                            <p className="text-[15px] mt-0.5">{lorem(k, 3, 3)}</p>
                           </motion.div>
                         );
                       })}
