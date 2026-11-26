@@ -160,7 +160,7 @@ const visibleFields = (s) => s.fields.filter((f) => f.on);
 
 // 4×4 dot grid used as the drag handle in the Figma cards.
 // Drag handle in a 24px slot so rows and section headers keep their alignment.
-function DragDots({ color = T.gray400 }) {
+function DragDots({ color = T.primary }) {
   return (
     <span className="w-6 h-6 flex items-center justify-center">
       <GripIcon color={color} />
@@ -343,7 +343,7 @@ function FieldRow({ field, sourceTag, onToggle, onHover }) {
           className="w-8 py-2 flex justify-center cursor-grab active:cursor-grabbing touch-none"
           title="Drag to reorder"
         >
-          <DragDots color={T.gray400} />
+          <DragDots />
         </span>
         <div className="min-w-0">
           <div className="flex items-center gap-2 min-w-0">
